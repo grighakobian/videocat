@@ -27,7 +27,7 @@ export const UrlBar = forwardRef<HTMLInputElement, UrlBarProps>(function UrlBar(
           ref={ref}
           value={value}
           spellCheck={false}
-          placeholder="Paste a YouTube link…"
+          placeholder="Paste a video link…"
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !empty && !disabled) onSubmit(!event.altKey)

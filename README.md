@@ -1,6 +1,6 @@
 # VideoCat
 
-A calm desktop video downloader for macOS and Windows. Paste a YouTube link, pick a
+A calm desktop video downloader for macOS and Windows. Paste a video link, pick a
 quality, get a file.
 
 Built with Electron, React, and TypeScript, implementing the **V2 "Clean"** design
@@ -154,8 +154,15 @@ Set `VIDEOCAT_DEBUG=1` to echo every raw yt-dlp line to the terminal.
 
 ## Scope
 
-YouTube only, per the MVP. `clipboardWatcher.ts` holds the host allowlist; adding a
-source means adding hosts there — yt-dlp itself already supports many more.
+Whatever yt-dlp can extract — well over a thousand sites. The URL field does not check
+the host, only that the input is an http(s) URL; anything yt-dlp cannot handle comes
+back as a normal download error. The clipboard watcher offers any copied link for the
+same reason, so it is more talkative than a host allowlist would be; the banner is
+dismissible, dismissed links are not offered again, and Settings can turn it off.
+
+Quality and codec handling is tuned against YouTube, which is the best-covered source.
+Other sites publish different format sets, so the picker shows whatever they actually
+offer rather than a fixed ladder.
 
 VideoCat is a tool for downloading video you have the right to download. Respect the
 terms of the sites you use it with, and creators' rights.

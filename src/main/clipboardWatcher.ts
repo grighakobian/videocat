@@ -3,28 +3,30 @@ import type { ClipboardHit } from '@shared/types'
 
 const POLL_INTERVAL_MS = 1200
 
-/** Hosts we treat as downloadable. YouTube only for now, per the MVP scope. */
-const SUPPORTED_HOSTS = [
-  'youtube.com',
-  'www.youtube.com',
-  'm.youtube.com',
-  'music.youtube.com',
-  'youtu.be'
-]
-
-export function isSupportedUrl(text: string): boolean {
+/**
+ * Whether a string is a web address worth handing to yt-dlp.
+ *
+ * Deliberately not a host allowlist: yt-dlp supports well over a thousand sites, and
+ * maintaining a list here would reject most of them. Anything yt-dlp cannot extract
+ * comes back as a normal download error, which is a better answer than refusing the
+ * paste. All we check is that it is an http(s) URL rather than arbitrary text.
+ */
+export function isHttpUrl(text: string): boolean {
   try {
     const url = new URL(text.trim())
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
-    return SUPPORTED_HOSTS.includes(url.hostname.toLowerCase())
+    return url.protocol === 'http:' || url.protocol === 'https:'
   } catch {
     return false
   }
 }
 
 /**
- * Polls the clipboard for video links. Electron has no clipboard-change event, so a
- * short interval is the only option; it only reads text and never writes.
+ * Polls the clipboard for links. Electron has no clipboard-change event, so a short
+ * interval is the only option; it only reads text and never writes.
+ *
+ * Any http(s) URL is offered, since yt-dlp's reach is far too wide to predict from the
+ * host alone. The banner is dismissible, dismissed links are never offered again, and
+ * the whole watcher can be turned off in Settings.
  */
 export class ClipboardWatcher {
   private timer: NodeJS.Timeout | null = null
@@ -63,7 +65,7 @@ export class ClipboardWatcher {
       const text = (await clipboard.readText()).trim()
       if (!text || text === this.lastSeen) return
       this.lastSeen = text
-      if (!isSupportedUrl(text) || this.ignored.has(text)) return
+      if (!isHttpUrl(text) || this.ignored.has(text)) return
       this.onHit({ url: text, title: null })
     } catch {
       // A transient clipboard read failure just means we try again next tick.

@@ -71,7 +71,7 @@ export default function App(): JSX.Element {
         event.preventDefault()
         void window.videocat.readClipboardUrl().then((clipboardUrl) => {
           if (!clipboardUrl) {
-            showToast({ kind: 'error', message: 'No YouTube link on the clipboard.' })
+            showToast({ kind: 'error', message: 'No link on the clipboard.' })
             return
           }
           setUrl(clipboardUrl)

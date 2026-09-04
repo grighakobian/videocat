@@ -52,13 +52,21 @@ async function withApp(fn) {
   // is also disabled on an empty field, so seed it, wait, then clear.
   const seed = win.locator('.urlbar__field input')
   const downloadButton = win.locator('.btn', { hasText: 'Download' })
-  await seed.fill(VIDEO)
   let engineReady = false
-  for (let i = 0; i < 300; i += 1) {
-    if (await downloadButton.isEnabled()) { engineReady = true; break }
-    await sleep(1000)
+  try {
+    await seed.fill(VIDEO)
+    for (let i = 0; i < 300; i += 1) {
+      if (await downloadButton.isEnabled()) { engineReady = true; break }
+      await sleep(1000)
+    }
+    await seed.fill('')
+  } catch (error) {
+    // The window can disappear here if the app fails to start; report it as this
+    // suite's failure rather than tearing down the whole run.
+    check('app stayed up while the engine started', false, error.message.split('\n')[0])
+    await app.close().catch(() => {})
+    return
   }
-  await seed.fill('')
   if (!engineReady) check('engine became ready', false, 'timed out after 300s')
 
   try {
@@ -123,15 +131,28 @@ const helpers = (win) => ({
 })
 
 const suites = {
-  /** Rejecting anything that is not a supported video link. */
+  /**
+   * The field takes any http(s) URL. yt-dlp reaches well over a thousand sites, so a
+   * host allowlist would reject most of what it can actually download; only input that
+   * is not a URL at all is turned away.
+   */
   async input(win) {
     const h = helpers(win)
-    await h.input.fill('https://example.com/not-a-video')
+    await h.input.fill('this is not a link')
     await win.locator('.btn', { hasText: 'Download' }).click()
     await sleep(800)
     const toast = await win.locator('.toast').textContent().catch(() => '')
-    check('invalid URL is rejected', /YouTube link/i.test(toast), JSON.stringify(toast))
-    check('invalid URL queues nothing', (await win.locator('.card').count()) === 0)
+    check('non-URL text is rejected', /does not look like a link/i.test(toast), JSON.stringify(toast))
+    check('non-URL text queues nothing', (await win.locator('.card').count()) === 0)
+    await win.locator('.toast .banner__close').click().catch(() => {})
+
+    // A non-YouTube host must be accepted rather than refused up front.
+    await h.input.fill('https://archive.org/details/BigBuckBunny_124')
+    await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
+    const queued = await h.waitFor(async () => (await win.locator('.card').count()) > 0, 20)
+    check('a non-YouTube URL is accepted', queued)
+    check('no rejection toast for a non-YouTube URL',
+      (await win.locator('.toast').count()) === 0)
   },
 
   /** The primary Download button: no picker, starts at the default quality. */
@@ -266,19 +287,26 @@ const suites = {
     }
 
     copy(VIDEO)
-    check('detects a copied YouTube link',
+    check('detects a copied link',
       await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 10))
 
     await h.clipboardBanner().locator('.banner__close').click()
     await sleep(400)
     check('banner dismisses', (await h.clipboardBanner().count()) === 0)
 
-    copy('https://example.com/some/article')
+    copy('just some text, not a link at all')
     await sleep(3000)
-    check('ignores non-video links', (await h.clipboardBanner().count()) === 0)
+    check('ignores clipboard text that is not a URL', (await h.clipboardBanner().count()) === 0)
+
+    // Any host is fair game now, not only YouTube.
+    copy('https://archive.org/details/BigBuckBunny_124')
+    check('offers a non-YouTube link too',
+      await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 10))
+    await h.clipboardBanner().locator('.banner__close').click()
+    await sleep(400)
 
     // Re-copying a dismissed link should stay quiet.
-    copy('https://example.com/other')
+    copy('some other plain text')
     await sleep(2000)
     copy(VIDEO)
     await sleep(3500)

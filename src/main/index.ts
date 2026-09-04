@@ -13,7 +13,7 @@ import { join } from 'node:path'
 import { IPC } from '@shared/ipc'
 import type { AppSnapshot, ClipboardHit, DiskSpace, EngineStatus, Settings } from '@shared/types'
 import { BinaryManager } from './binaries'
-import { ClipboardWatcher, isSupportedUrl } from './clipboardWatcher'
+import { ClipboardWatcher, isHttpUrl } from './clipboardWatcher'
 import { readDiskSpace } from './disk'
 import { DownloadQueue } from './queue'
 import { Store } from './store'
@@ -42,18 +42,49 @@ function send(channel: string, payload: unknown): void {
 }
 
 /**
- * Strips the default File / Edit / View / Window menus.
+ * Strips the File / Edit / View / Window menus from the bar.
  *
  * macOS always shows an application menu, so that one stays — it carries About, Hide
  * and Quit, and cannot be removed. Everywhere else the menu bar goes entirely.
  *
- * The Edit menu normally supplies ⌘C/⌘V/⌘X/⌘A. Chromium still handles those inside
- * text fields without it, which is what keeps the URL bar usable; the app's own
- * paste-from-anywhere shortcut is a renderer keydown listener and is unaffected.
+ * The editing items are folded into that app menu rather than dropped. On macOS a
+ * shortcut only fires if some menu item declares it, so removing the Edit menu takes
+ * ⌘C/⌘V/⌘X/⌘A with it — and pasting a link into the URL bar is the whole app. Keeping
+ * them here leaves the menu bar with a single title while the shortcuts still work.
+ * (`visible: false` plus `acceleratorWorksWhenHidden` would hide them and is documented
+ * to keep the accelerators, but this way there is nothing to take on trust.)
  */
 function applyMenu(): void {
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null)
+    return
+  }
+
   Menu.setApplicationMenu(
-    process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }]) : null
+    Menu.buildFromTemplate([
+      {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      }
+    ])
   )
 }
 
@@ -129,8 +160,9 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.addUrl, (_event, url: string, autoStart: boolean) => {
     const trimmed = String(url ?? '').trim()
-    if (!isSupportedUrl(trimmed)) {
-      return { ok: false as const, error: 'Paste a YouTube link to get started.' }
+    // No host check: yt-dlp decides what it can extract, and says so if it cannot.
+    if (!isHttpUrl(trimmed)) {
+      return { ok: false as const, error: 'That does not look like a link. Paste a video URL.' }
     }
     clipboardWatcher.ignore(trimmed)
     const item = queue.add(trimmed, { autoStart })
@@ -200,7 +232,7 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.readClipboardUrl, async () => {
     const text = (await clipboard.readText()).trim()
-    return isSupportedUrl(text) ? text : null
+    return isHttpUrl(text) ? text : null
   })
 
   ipcMain.handle(IPC.dismissClipboardHit, (_event, url: string) => clipboardWatcher.ignore(url))

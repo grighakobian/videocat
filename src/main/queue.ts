@@ -20,7 +20,7 @@ export interface QueueEvents {
 }
 
 function containerLabelFor(choice: FormatChoice): string {
-  return choice.kind === 'audio' ? 'MP3 320k' : 'MP4'
+  return choice.containerLabel
 }
 
 function qualityLabelFor(choice: FormatChoice): string {
@@ -443,11 +443,23 @@ export class DownloadQueue {
     if (/members-only|Join this channel/i.test(raw)) return 'This video is for channel members only.'
     if (/Sign in to confirm your age|age.?restricted/i.test(raw)) return 'This video is age-restricted and needs a signed-in account.'
     if (/Video unavailable/i.test(raw)) return 'This video is unavailable.'
+    // Source-agnostic cases: with ~1750 extractors these turn up far more than the
+    // YouTube-specific ones above.
+    if (/only works when logged-in|--cookies|requires? (a )?(login|account|subscription)/i.test(raw)) {
+      return 'This video needs a signed-in account, which VideoCat cannot do yet.'
+    }
+    if (/\bnot found\b|HTTP Error 404/i.test(raw)) return 'That video could not be found.'
+    if (/geo.?(restricted|blocked)|not available in your country/i.test(raw)) {
+      return 'This video is not available in your region.'
+    }
+    if (/\bDRM\b/i.test(raw)) return 'This video is DRM-protected and cannot be downloaded.'
     if (/ENOENT/i.test(raw)) return 'The download engine is not ready yet. Try again in a moment.'
     if (/Unable to download|urlopen error|getaddrinfo|Temporary failure/i.test(raw)) {
       return 'Could not reach the network. Check your connection and retry.'
     }
-    // Keep the tail of yt-dlp's own message; the head is usually a noisy prefix.
-    return raw.split('\n').filter(Boolean).pop() ?? 'Download failed.'
+    // Keep the tail of yt-dlp's own message; the head is usually a noisy prefix. Cap it,
+    // because some extractors emit a paragraph of setup advice on one line.
+    const tail = raw.split('\n').filter(Boolean).pop() ?? 'Download failed.'
+    return tail.length > 160 ? `${tail.slice(0, 157)}…` : tail
   }
 }

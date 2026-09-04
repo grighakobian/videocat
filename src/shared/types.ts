@@ -23,6 +23,8 @@ export interface FormatChoice {
   height: number | null
   /** Video codec of the stream this resolves to, e.g. "H.264", "VP9". Null for audio. */
   codecLabel: string | null
+  /** Container the finished file will actually use, e.g. "MP4", "WEBM", "MP3 320k". */
+  containerLabel: string
   /**
    * False when the result needs a modern player. YouTube only offers H.264 up to
    * 1080p, so 1440p and 4K necessarily arrive as VP9 or AV1, which QuickTime and

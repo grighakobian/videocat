@@ -207,13 +207,19 @@ export function buildFormatChoices(formats: RawFormat[], durationSeconds: number
     }
 
     const codec = describeVcodec((video ?? progressive)?.vcodec)
+    // Separate streams get merged, and --merge-output-format forces mp4. A single
+    // progressive file is downloaded as-is, so it keeps whatever container it came in —
+    // sites other than YouTube serve plenty of webm, mkv and even avi.
+    const merged = Boolean(video && audio)
+    const container = merged ? 'MP4' : (progressive?.ext ?? 'mp4').toUpperCase()
     choices.push({
       id: `video:${height}`,
-      label: `${heightLabel(height)} · MP4`,
+      label: `${heightLabel(height)} · ${container}`,
       detail: [sizeLabel(approxBytes, estimated), codec.label].filter(Boolean).join(' · '),
       kind: 'video',
       height,
       codecLabel: codec.label,
+      containerLabel: container,
       widelyCompatible: codec.compatible,
       // Codec preference is expressed through FORMAT_SORT, not here, so that asking
       // for 4K never quietly resolves to a lower-resolution H.264 stream.
@@ -232,6 +238,7 @@ export function buildFormatChoices(formats: RawFormat[], durationSeconds: number
       kind: 'video',
       height: null,
       codecLabel: codec.label,
+      containerLabel: 'MP4',
       widelyCompatible: codec.compatible,
       selector: 'bestvideo+bestaudio/best',
       approxBytes: null
@@ -250,6 +257,7 @@ export function buildFormatChoices(formats: RawFormat[], durationSeconds: number
     kind: 'audio',
     height: null,
     codecLabel: null,
+    containerLabel: `MP3 ${MP3_BITRATE_KBPS}k`,
     // MP3 plays everywhere, whatever the source stream was.
     widelyCompatible: true,
     selector: 'bestaudio/best',
