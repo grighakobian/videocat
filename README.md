@@ -22,6 +22,12 @@ npm install
 npm run dev
 ```
 
+> In development the macOS menu bar reads **Electron**, not VideoCat. That title comes
+> from the running bundle's `Info.plist`, and in dev that bundle is
+> `node_modules/electron/dist/Electron.app`. `app.setName()` cannot change it — AppKit
+> reads it at launch. The packaged app is correct, because electron-builder writes
+> `CFBundleName` from `productName`.
+
 In VS Code, press **F5** — `.vscode/launch.json` has configs for both platforms:
 *VideoCat* (run with main-process breakpoints), *VideoCat + renderer* (add renderer
 breakpoints), *Preview production build*, and *Verification suite*. Each unsets
