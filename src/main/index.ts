@@ -1,4 +1,13 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  Menu,
+  Notification,
+  shell
+} from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc'
@@ -30,6 +39,22 @@ function send(channel: string, payload: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(channel, payload)
   }
+}
+
+/**
+ * Strips the default File / Edit / View / Window menus.
+ *
+ * macOS always shows an application menu, so that one stays — it carries About, Hide
+ * and Quit, and cannot be removed. Everywhere else the menu bar goes entirely.
+ *
+ * The Edit menu normally supplies ⌘C/⌘V/⌘X/⌘A. Chromium still handles those inside
+ * text fields without it, which is what keeps the URL bar usable; the app's own
+ * paste-from-anywhere shortcut is a renderer keydown listener and is unaffected.
+ */
+function applyMenu(): void {
+  Menu.setApplicationMenu(
+    process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }]) : null
+  )
 }
 
 function createWindow(): void {
@@ -221,6 +246,7 @@ app.whenReady().then(async () => {
   store = new Store()
   bootstrap()
   registerIpc()
+  applyMenu()
   createWindow()
 
   applyClipboardSetting(store.getSettings())

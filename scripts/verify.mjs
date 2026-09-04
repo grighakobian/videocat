@@ -287,9 +287,18 @@ const suites = {
     copy('https://youtu.be/aqz-KE-bpKQ')
     await sleep(2000)
     await win.locator('.sidebar').click() // focus away from the text field
-    await win.keyboard.press(platform() === 'darwin' ? 'Meta+v' : 'Control+v')
+    const pasteKey = platform() === 'darwin' ? 'Meta+v' : 'Control+v'
+    await win.keyboard.press(pasteKey)
     await sleep(1200)
     check('⌘V fills the URL bar', (await h.input.inputValue()).includes('youtu.be'))
+
+    // Removing the Edit menu can take the editing shortcuts with it on macOS, and
+    // pasting a link into the URL bar is the app's main interaction.
+    await h.input.fill('')
+    await h.input.click()
+    await win.keyboard.press(pasteKey)
+    await sleep(800)
+    check('⌘V pastes into the focused URL field', (await h.input.inputValue()).includes('youtu.be'))
 
     await h.input.fill('')
     await win.locator('.banner__close').first().click().catch(() => {})
