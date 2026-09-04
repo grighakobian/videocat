@@ -13,7 +13,7 @@ export interface Toast {
   message: string
 }
 
-export interface GrabbitState {
+export interface VideoCatState {
   ready: boolean
   settings: Settings | null
   queue: DownloadItem[]
@@ -38,7 +38,7 @@ const INITIAL_ENGINE: EngineStatus = {
  * Single source of truth for the renderer. The main process owns all real state and
  * pushes it here; this hook only mirrors it and never mutates it locally.
  */
-export function useGrabbit(): GrabbitState {
+export function useVideoCat(): VideoCatState {
   const [ready, setReady] = useState(false)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [queue, setQueue] = useState<DownloadItem[]>([])
@@ -50,7 +50,7 @@ export function useGrabbit(): GrabbitState {
 
   useEffect(() => {
     let canceled = false
-    void window.grabbit.getSnapshot().then((snapshot) => {
+    void window.videocat.getSnapshot().then((snapshot) => {
       if (canceled) return
       setSettings(snapshot.settings)
       setQueue(snapshot.queue)
@@ -61,13 +61,13 @@ export function useGrabbit(): GrabbitState {
     })
 
     const unsubscribers = [
-      window.grabbit.onQueue(setQueue),
-      window.grabbit.onHistory(setHistory),
-      window.grabbit.onSettings(setSettings),
-      window.grabbit.onDisk(setDisk),
-      window.grabbit.onEngine(setEngine),
-      window.grabbit.onClipboardHit(setClipboardHit),
-      window.grabbit.onToast(setToast)
+      window.videocat.onQueue(setQueue),
+      window.videocat.onHistory(setHistory),
+      window.videocat.onSettings(setSettings),
+      window.videocat.onDisk(setDisk),
+      window.videocat.onEngine(setEngine),
+      window.videocat.onClipboardHit(setClipboardHit),
+      window.videocat.onToast(setToast)
     ]
 
     return () => {
@@ -85,7 +85,7 @@ export function useGrabbit(): GrabbitState {
 
   const dismissClipboardHit = useCallback(() => {
     setClipboardHit((current) => {
-      if (current) void window.grabbit.dismissClipboardHit(current.url)
+      if (current) void window.videocat.dismissClipboardHit(current.url)
       return null
     })
   }, [])

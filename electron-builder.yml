@@ -1,5 +1,5 @@
-appId: com.grabbit.app
-productName: Grabbit
+appId: com.videocat.app
+productName: VideoCat
 directories:
   buildResources: build
   output: release
@@ -21,7 +21,7 @@ mac:
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    NSAppleEventsUsageDescription: Grabbit uses Apple Events to reveal downloaded files in Finder.
+    NSAppleEventsUsageDescription: VideoCat uses Apple Events to reveal downloaded files in Finder.
 win:
   target:
     - target: nsis

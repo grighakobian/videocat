@@ -6,7 +6,7 @@
  *
  * Suites: input, autostart, codecs, queue, cancel, concurrency, clipboard.
  * These hit the network and run real downloads, so a full pass takes a few minutes.
- * State is reset first, so anything already in ~/Movies/Grabbit is left alone but the
+ * State is reset first, so anything already in ~/Movies/VideoCat is left alone but the
  * settings/history store is cleared.
  */
 import { _electron as electron } from 'playwright'
@@ -31,9 +31,9 @@ function check(name, ok, detail = '') {
 /** Clears persisted settings/history so each run starts from defaults. */
 function resetStore() {
   const dir = platform() === 'darwin'
-    ? join(homedir(), 'Library/Application Support/grabbit')
-    : join(homedir(), '.config/grabbit')
-  rmSync(join(dir, 'grabbit.json'), { force: true })
+    ? join(homedir(), 'Library/Application Support/videocat')
+    : join(homedir(), '.config/videocat')
+  rmSync(join(dir, 'videocat.json'), { force: true })
 }
 
 async function withApp(fn) {

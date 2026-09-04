@@ -70,8 +70,8 @@ export function LibraryPage({ history }: LibraryPageProps): JSX.Element {
               type="button"
               className="tile"
               title={entry.outputPath}
-              onDoubleClick={() => void window.grabbit.revealFile(entry.outputPath)}
-              onClick={() => void window.grabbit.openFile(entry.outputPath)}
+              onDoubleClick={() => void window.videocat.revealFile(entry.outputPath)}
+              onClick={() => void window.videocat.openFile(entry.outputPath)}
             >
               <Thumb
                 kind={entry.kind}

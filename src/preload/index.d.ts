@@ -1,8 +1,8 @@
-import type { GrabbitApi } from './index'
+import type { VideoCatApi } from './index'
 
 declare global {
   interface Window {
-    grabbit: GrabbitApi
+    videocat: VideoCatApi
   }
 }
 

@@ -19,14 +19,14 @@ const MIN_CONCURRENT = 1
 const MAX_CONCURRENT = 6
 
 function update(patch: Partial<Settings>): void {
-  void window.grabbit.updateSettings(patch)
+  void window.videocat.updateSettings(patch)
 }
 
 export function SettingsPage({ settings, engine }: SettingsPageProps): JSX.Element {
   const [version, setVersion] = useState('—')
 
   useEffect(() => {
-    void window.grabbit.getVersion().then(setVersion)
+    void window.videocat.getVersion().then(setVersion)
   }, [])
 
   const engineLabel =
@@ -56,7 +56,7 @@ export function SettingsPage({ settings, engine }: SettingsPageProps): JSX.Eleme
             <button
               type="button"
               className="btn btn--sm btn--ghost"
-              onClick={() => void window.grabbit.chooseDownloadDirectory()}
+              onClick={() => void window.videocat.chooseDownloadDirectory()}
             >
               Change…
             </button>
@@ -211,11 +211,11 @@ export function SettingsPage({ settings, engine }: SettingsPageProps): JSX.Eleme
         </div>
 
         <div className="footnote">
-          Grabbit {version} · Engine: {engineLabel} ·{' '}
+          VideoCat {version} · Engine: {engineLabel} ·{' '}
           <button
             type="button"
             className="linkbtn"
-            onClick={() => void window.grabbit.updateEngine()}
+            onClick={() => void window.videocat.updateEngine()}
           >
             Update engine
           </button>

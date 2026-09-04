@@ -16,7 +16,7 @@ interface Persisted {
 
 function defaultSettings(): Settings {
   return {
-    downloadDirectory: join(app.getPath('videos'), 'Grabbit'),
+    downloadDirectory: join(app.getPath('videos'), 'VideoCat'),
     defaultQuality: '1080',
     maxConcurrentDownloads: 3,
     watchClipboard: true,
@@ -33,7 +33,7 @@ function defaultSettings(): Settings {
  * Writes go through a temp file so a crash mid-write cannot truncate the store.
  */
 export class Store {
-  private readonly file = join(app.getPath('userData'), 'grabbit.json')
+  private readonly file = join(app.getPath('userData'), 'videocat.json')
   private data: Persisted
 
   constructor() {

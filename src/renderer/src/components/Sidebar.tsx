@@ -24,8 +24,8 @@ export function Sidebar({ page, onNavigate, activeCount, disk }: SidebarProps): 
   return (
     <nav className="sidebar">
       <div className="brand">
-        <div className="brand__mark">G</div>
-        <div className="brand__name">Grabbit</div>
+        <div className="brand__mark">V</div>
+        <div className="brand__name">VideoCat</div>
       </div>
 
       <div className="nav">

@@ -31,7 +31,7 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
           </div>
           <div className="empty__title">Nothing downloading</div>
           <div className="empty__hint">
-            Paste a YouTube link above and hit Download. Grabbit picks your default quality, or use
+            Paste a YouTube link above and hit Download. VideoCat picks your default quality, or use
             Choose quality to decide per video.
           </div>
         </div>
@@ -54,7 +54,7 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
                 <button
                   type="button"
                   className="linkbtn"
-                  onClick={() => void window.grabbit.pauseAll()}
+                  onClick={() => void window.videocat.pauseAll()}
                 >
                   Pause all
                 </button>
@@ -63,7 +63,7 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
                 <button
                   type="button"
                   className="linkbtn"
-                  onClick={() => void window.grabbit.resumeAll()}
+                  onClick={() => void window.videocat.resumeAll()}
                 >
                   Resume all
                 </button>
@@ -85,7 +85,7 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
               <button
                 type="button"
                 className="linkbtn"
-                onClick={() => void window.grabbit.openDownloadFolder()}
+                onClick={() => void window.videocat.openDownloadFolder()}
               >
                 Open folder
               </button>
@@ -97,7 +97,7 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
               type="button"
               className="row"
               title={entry.outputPath}
-              onClick={() => void window.grabbit.revealFile(entry.outputPath)}
+              onClick={() => void window.videocat.revealFile(entry.outputPath)}
             >
               <span className="row__tick">
                 <CheckCircleIcon size={15} />

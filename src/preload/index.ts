@@ -82,6 +82,6 @@ const api = {
   onToast: (handler: (toast: Toast) => void): Unsubscribe => subscribe(IPC.onToast, handler)
 }
 
-export type GrabbitApi = typeof api
+export type VideoCatApi = typeof api
 
-contextBridge.exposeInMainWorld('grabbit', api)
+contextBridge.exposeInMainWorld('videocat', api)

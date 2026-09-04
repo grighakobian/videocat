@@ -1,15 +1,15 @@
 {
-  // Grabbit is an Electron app, so "running" it means three things at once: the
+  // VideoCat is an Electron app, so "running" it means three things at once: the
   // electron-vite dev server, the main process (Node), and the renderer (Chromium).
-  // Press F5 on "Grabbit" to just run it. Ports are electron-vite's defaults:
+  // Press F5 on "VideoCat" to just run it. Ports are electron-vite's defaults:
   // 5858 = main-process inspector, 9222 = renderer DevTools, 5173 = renderer dev server.
   "version": "0.2.0",
   "configurations": [
     {
       // The one to press F5 on. Bundles main + preload, starts the renderer dev server
       // with HMR, and launches the app. Breakpoints in src/main and src/preload are live;
-      // for src/renderer as well, run the "Grabbit + renderer" compound instead.
-      "name": "Grabbit",
+      // for src/renderer as well, run the "VideoCat + renderer" compound instead.
+      "name": "VideoCat",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -34,7 +34,7 @@
     },
     {
       // Attaches to the renderer. On its own it expects the app to be running already;
-      // normally you want the "Grabbit + renderer" compound.
+      // normally you want the "VideoCat + renderer" compound.
       "name": "Renderer",
       "type": "chrome",
       "request": "attach",
@@ -92,8 +92,8 @@
   "compounds": [
     {
       // Main-process and renderer breakpoints together.
-      "name": "Grabbit + renderer",
-      "configurations": ["Grabbit", "Renderer"],
+      "name": "VideoCat + renderer",
+      "configurations": ["VideoCat", "Renderer"],
       "stopAll": true,
       "presentation": { "order": 2 }
     }

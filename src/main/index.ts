@@ -137,7 +137,7 @@ function registerIpc(): void {
   ipcMain.handle(IPC.chooseDownloadDirectory, async () => {
     if (!mainWindow) return null
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Choose where Grabbit saves downloads',
+      title: 'Choose where VideoCat saves downloads',
       defaultPath: store.getSettings().downloadDirectory,
       properties: ['openDirectory', 'createDirectory']
     })

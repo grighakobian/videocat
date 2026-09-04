@@ -545,11 +545,11 @@ a:hover {
   transition: width 0.25s ease-out;
 }
 .progress__fill--active {
-  animation: grabbit-pulse 2s ease-in-out infinite;
+  animation: videocat-pulse 2s ease-in-out infinite;
 }
 .progress__fill--indeterminate {
   width: 35% !important;
-  animation: grabbit-slide 1.4s ease-in-out infinite;
+  animation: videocat-slide 1.4s ease-in-out infinite;
 }
 .progress__percent {
   font-weight: 700;
@@ -566,7 +566,7 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 
-@keyframes grabbit-pulse {
+@keyframes videocat-pulse {
   0%,
   100% {
     opacity: 1;
@@ -575,7 +575,7 @@ a:hover {
     opacity: 0.55;
   }
 }
-@keyframes grabbit-slide {
+@keyframes videocat-slide {
   0% {
     transform: translateX(-100%);
   }

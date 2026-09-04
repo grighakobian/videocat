@@ -1,9 +1,9 @@
 {
-  "name": "grabbit",
+  "name": "videocat",
   "version": "0.1.0",
   "description": "A calm desktop video downloader",
   "main": "./out/main/index.js",
-  "author": "Grabbit",
+  "author": "VideoCat",
   "license": "MIT",
   "private": true,
   "scripts": {

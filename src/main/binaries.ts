@@ -28,7 +28,7 @@ const RELEASE_BASE = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download'
 const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 /**
- * Locates the two external binaries Grabbit needs.
+ * Locates the two external binaries VideoCat needs.
  *
  * ffmpeg ships with the app (via ffmpeg-static). yt-dlp is fetched into userData on
  * first run and self-updates from there — YouTube breaks extractors often enough that
@@ -143,7 +143,7 @@ export class BinaryManager {
 
   private async downloadYtdlp(): Promise<void> {
     const asset = YTDLP_ASSET[process.platform]
-    if (!asset) throw new Error(`Grabbit does not support ${process.platform} yet.`)
+    if (!asset) throw new Error(`VideoCat does not support ${process.platform} yet.`)
 
     mkdirSync(this.binDir, { recursive: true })
     const target = `${this.ytdlpPath}.part`
@@ -155,7 +155,7 @@ export class BinaryManager {
           reject(new Error('Too many redirects fetching yt-dlp.'))
           return
         }
-        httpsGet(url, { headers: { 'user-agent': 'Grabbit' } }, (response: IncomingMessage) => {
+        httpsGet(url, { headers: { 'user-agent': 'VideoCat' } }, (response: IncomingMessage) => {
           const { statusCode = 0, headers } = response
           if (statusCode >= 300 && statusCode < 400 && headers.location) {
             response.resume()

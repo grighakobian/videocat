@@ -1,10 +1,10 @@
-# Grabbit
+# VideoCat
 
 A calm desktop video downloader for macOS and Windows. Paste a YouTube link, pick a
 quality, get a file.
 
 Built with Electron, React, and TypeScript, implementing the **V2 "Clean"** design
-exploration from `Grabbit Downloader v2.dc.html`.
+exploration from `VideoCat Downloader v2.dc.html`.
 
 ## Screens
 
@@ -23,16 +23,16 @@ npm run dev
 ```
 
 In VS Code, press **F5** — `.vscode/launch.json` has configs for both platforms:
-*Grabbit* (run with main-process breakpoints), *Grabbit + renderer* (add renderer
+*VideoCat* (run with main-process breakpoints), *VideoCat + renderer* (add renderer
 breakpoints), *Preview production build*, and *Verification suite*. Each unsets
 `ELECTRON_RUN_AS_NODE`, for the reason below.
 
-On first launch Grabbit downloads `yt-dlp` into its user-data folder and keeps it
+On first launch VideoCat downloads `yt-dlp` into its user-data folder and keeps it
 updated (checked at most once a day). `ffmpeg` ships with the app via `ffmpeg-static`.
 
 > If your shell exports `ELECTRON_RUN_AS_NODE=1` — some editors and terminals do — the
 > Electron binary boots as plain Node and no window appears. Unset it for the launch.
-> (Grabbit sets that same variable deliberately, but only on the yt-dlp child process —
+> (VideoCat sets that same variable deliberately, but only on the yt-dlp child process —
 > see the engine notes below.)
 
 ## Building installers
@@ -85,7 +85,7 @@ A few things about driving `yt-dlp` that are easy to get wrong, and are handled 
 - **A merged download is two sequential downloads** (video, then audio), each reporting
   its own 0→100%. `ytdlp.ts` accumulates finished streams so the bar only moves forward.
 - **yt-dlp defaults to AV1**, which QuickTime and older Windows players cannot decode —
-  a downloaded `.mp4` simply refuses to open. Grabbit passes
+  a downloaded `.mp4` simply refuses to open. VideoCat passes
   `--format-sort res,vcodec:h264,acodec:aac` so files come back as H.264 + AAC. The
   order matters: resolution has to lead, because YouTube only serves H.264 up to 1080p
   and sorting by codec first would hand back a 1080p file to someone who asked for 4K.
@@ -97,7 +97,7 @@ A few things about driving `yt-dlp` that are easy to get wrong, and are handled 
   in the picker equal to the size on disk.
 - **yt-dlp needs a JavaScript runtime** for full YouTube extraction. Without one it
   warns that extraction is deprecated and silently offers fewer formats. Rather than
-  making users install Deno or Node, Grabbit points it at **its own Electron binary**
+  making users install Deno or Node, VideoCat points it at **its own Electron binary**
   (`--js-runtimes node:$(process.execPath)`), which runs as plain Node when
   `ELECTRON_RUN_AS_NODE=1` — set on the yt-dlp child process, and inherited by the
   runtime yt-dlp spawns. No extra dependency, nothing for the user to install.
@@ -142,12 +142,12 @@ where a unit test would have been mocked into agreeing with itself.
 - **`scripts/smoke.mjs`** — walks every screen and screenshots it; with `--url` it runs
   one download end to end, optionally exercising `--pause`.
 
-Set `GRABBIT_DEBUG=1` to echo every raw yt-dlp line to the terminal.
+Set `VIDEOCAT_DEBUG=1` to echo every raw yt-dlp line to the terminal.
 
 ## Scope
 
 YouTube only, per the MVP. `clipboardWatcher.ts` holds the host allowlist; adding a
 source means adding hosts there — yt-dlp itself already supports many more.
 
-Grabbit is a tool for downloading video you have the right to download. Respect the
+VideoCat is a tool for downloading video you have the right to download. Respect the
 terms of the sites you use it with, and creators' rights.

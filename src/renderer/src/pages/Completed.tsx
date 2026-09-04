@@ -42,7 +42,7 @@ export function CompletedPage({ history }: CompletedPageProps): JSX.Element {
           {pluralize(history.length, 'file')} · {formatBytes(weekBytes)} this week
         </div>
         <div className="page-head__end">
-          <button type="button" className="linkbtn" onClick={() => void window.grabbit.clearHistory()}>
+          <button type="button" className="linkbtn" onClick={() => void window.videocat.clearHistory()}>
             Clear history
           </button>
         </div>
@@ -77,7 +77,7 @@ export function CompletedPage({ history }: CompletedPageProps): JSX.Element {
                   type="button"
                   className="btn btn--sm"
                   disabled={!entry.fileExists}
-                  onClick={() => void window.grabbit.openFile(entry.outputPath)}
+                  onClick={() => void window.videocat.openFile(entry.outputPath)}
                 >
                   Play
                 </button>
@@ -85,7 +85,7 @@ export function CompletedPage({ history }: CompletedPageProps): JSX.Element {
                   type="button"
                   className="btn btn--sm btn--ghost"
                   disabled={!entry.fileExists}
-                  onClick={() => void window.grabbit.revealFile(entry.outputPath)}
+                  onClick={() => void window.videocat.revealFile(entry.outputPath)}
                 >
                   {navigator.platform.toLowerCase().includes('mac')
                     ? 'Show in Finder'
@@ -94,7 +94,7 @@ export function CompletedPage({ history }: CompletedPageProps): JSX.Element {
                 <button
                   type="button"
                   className="btn btn--sm btn--ghost"
-                  onClick={() => void window.grabbit.removeHistoryEntry(entry.id)}
+                  onClick={() => void window.videocat.removeHistoryEntry(entry.id)}
                 >
                   Remove
                 </button>

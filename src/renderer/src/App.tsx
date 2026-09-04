@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'rea
 import type { PageId } from '@shared/types'
 import { Sidebar } from './components/Sidebar'
 import { UrlBar } from './components/UrlBar'
-import { useGrabbit } from './lib/useGrabbit'
+import { useVideoCat } from './lib/useVideoCat'
 import { CompletedPage } from './pages/Completed'
 import { DownloadsPage } from './pages/Downloads'
 import { LibraryPage } from './pages/Library'
@@ -17,7 +17,7 @@ const PAGE_TITLES: Record<PageId, string> = {
 }
 
 export default function App(): JSX.Element {
-  const state = useGrabbit()
+  const state = useVideoCat()
   const [page, setPage] = useState<PageId>('downloads')
   const [url, setUrl] = useState('')
   const [customTitlebar, setCustomTitlebar] = useState(true)
@@ -30,12 +30,12 @@ export default function App(): JSX.Element {
   }, [settings?.accentColor])
 
   useEffect(() => {
-    document.title = `Grabbit — ${PAGE_TITLES[page]}`
+    document.title = `VideoCat — ${PAGE_TITLES[page]}`
   }, [page])
 
   // Platforms where we kept the native frame draw their own titlebar; don't double up.
   useEffect(() => {
-    void window.grabbit.getPlatform().then((info) => setCustomTitlebar(info.customTitlebar))
+    void window.videocat.getPlatform().then((info) => setCustomTitlebar(info.customTitlebar))
   }, [])
 
   const activeCount = useMemo(
@@ -51,7 +51,7 @@ export default function App(): JSX.Element {
         showToast({ kind: 'error', message: engine.message ?? 'The download engine is unavailable.' })
         return
       }
-      const result = await window.grabbit.addUrl(trimmed, autoStart)
+      const result = await window.videocat.addUrl(trimmed, autoStart)
       if (!result.ok) {
         showToast({ kind: 'error', message: result.error })
         return
@@ -69,7 +69,7 @@ export default function App(): JSX.Element {
       const inField = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA'
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v' && !inField) {
         event.preventDefault()
-        void window.grabbit.readClipboardUrl().then((clipboardUrl) => {
+        void window.videocat.readClipboardUrl().then((clipboardUrl) => {
           if (!clipboardUrl) {
             showToast({ kind: 'error', message: 'No YouTube link on the clipboard.' })
             return
@@ -89,7 +89,7 @@ export default function App(): JSX.Element {
     <div className="app">
       {customTitlebar ? (
         <div className="titlebar">
-          <span className="titlebar__label">Grabbit — {PAGE_TITLES[page]}</span>
+          <span className="titlebar__label">VideoCat — {PAGE_TITLES[page]}</span>
         </div>
       ) : null}
       <div className="shell">
@@ -118,7 +118,7 @@ export default function App(): JSX.Element {
               <button
                 type="button"
                 className="linkbtn"
-                onClick={() => void window.grabbit.updateEngine()}
+                onClick={() => void window.videocat.updateEngine()}
               >
                 Retry
               </button>

@@ -6,12 +6,12 @@ import type { BinaryManager } from './binaries'
 
 const execFileAsync = promisify(execFile)
 
-/** Set GRABBIT_DEBUG=1 to echo every raw yt-dlp line to the terminal. */
-const DEBUG = process.env.GRABBIT_DEBUG === '1'
+/** Set VIDEOCAT_DEBUG=1 to echo every raw yt-dlp line to the terminal. */
+const DEBUG = process.env.VIDEOCAT_DEBUG === '1'
 
 /** Marker we ask yt-dlp to prefix the final filepath with, so we can spot it on stdout. */
-const FILE_MARKER = 'GRABBIT_FILE:'
-const PROGRESS_MARKER = 'GRABBIT_PROGRESS'
+const FILE_MARKER = 'VIDEOCAT_FILE:'
+const PROGRESS_MARKER = 'VIDEOCAT_PROGRESS'
 const ALREADY_DOWNLOADED = 'has already been downloaded'
 
 /**

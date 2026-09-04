@@ -87,7 +87,7 @@ function FormatPicker({ item }: DownloadCardProps): JSX.Element {
           className="btn btn--sm"
           disabled={!choice}
           onClick={() => {
-            if (choice) void window.grabbit.chooseFormat(item.id, choice.id, subtitles)
+            if (choice) void window.videocat.chooseFormat(item.id, choice.id, subtitles)
           }}
         >
           Start download
@@ -95,7 +95,7 @@ function FormatPicker({ item }: DownloadCardProps): JSX.Element {
         <button
           type="button"
           className="linkbtn linkbtn--muted"
-          onClick={() => void window.grabbit.cancel(item.id)}
+          onClick={() => void window.videocat.cancel(item.id)}
         >
           Remove
         </button>
@@ -156,7 +156,7 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
               className="iconbtn"
               aria-label="Pause"
               title="Pause"
-              onClick={() => void window.grabbit.pause(item.id)}
+              onClick={() => void window.videocat.pause(item.id)}
             >
               <PauseIcon size={13} />
             </button>
@@ -167,7 +167,7 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
               className="iconbtn"
               aria-label="Resume"
               title="Resume"
-              onClick={() => void window.grabbit.resume(item.id)}
+              onClick={() => void window.videocat.resume(item.id)}
             >
               <PlayIcon size={13} />
             </button>
@@ -178,7 +178,7 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
               className="iconbtn"
               aria-label="Retry"
               title="Retry"
-              onClick={() => void window.grabbit.retry(item.id)}
+              onClick={() => void window.videocat.retry(item.id)}
             >
               <RetryIcon size={13} />
             </button>
@@ -189,7 +189,7 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
               className="iconbtn iconbtn--danger"
               aria-label="Cancel"
               title="Cancel"
-              onClick={() => void window.grabbit.cancel(item.id)}
+              onClick={() => void window.videocat.cancel(item.id)}
             >
               <CloseIcon size={13} />
             </button>

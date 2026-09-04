@@ -25,10 +25,10 @@ const html = `<!doctype html><meta charset="utf-8"><style>
     font-weight: 700; font-size: 620px; line-height: 1; letter-spacing: -0.03em;
     text-shadow: 0 12px 34px rgba(80, 22, 0, 0.32);
   }
-</style><body><div class="mark">G</div></body>`
+</style><body><div class="mark">V</div></body>`
 
 // A throwaway Electron app whose only job is to host a window Playwright can screenshot.
-const stage = mkdtempSync(join(tmpdir(), 'grabbit-icon-'))
+const stage = mkdtempSync(join(tmpdir(), 'videocat-icon-'))
 writeFileSync(join(stage, 'package.json'), JSON.stringify({ name: 'icon', main: 'main.js' }))
 writeFileSync(join(stage, 'index.html'), html)
 writeFileSync(
