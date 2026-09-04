@@ -811,17 +811,24 @@ a:hover {
   padding: 14px;
   border: 1px solid var(--border);
   background: #fff;
+}
+/* Rows in a group read as one card, so consecutive rows share a single hairline
+   rather than stacking two. Every row keeps its own top border, which is what gives
+   the first row of each group its lid. */
+.settings__group .setting + .setting {
   border-top-width: 0;
 }
-.settings__group .setting:first-of-type {
-  border-top-width: 1px;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+/* Round the outer corners of the run. Note the trap: `.setting:first-of-type` cannot
+   be used, because the section label is a <div> too — it, not the first row, is the
+   first div of its type, so that selector never matches. Anchor off the label instead,
+   and set corners individually so a single-row group still gets all four rounded. */
+.settings__group .section-label + .setting {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
 }
-.settings__group .setting:last-of-type {
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-.settings__group .setting:only-of-type {
-  border-radius: var(--radius-lg);
+.settings__group .setting:last-child {
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
 }
 .setting__text {
   flex: 1;
