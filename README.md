@@ -84,8 +84,17 @@ A few things about driving `yt-dlp` that are easy to get wrong, and are handled 
   `--no-quiet` is required alongside it.
 - **A merged download is two sequential downloads** (video, then audio), each reporting
   its own 0→100%. `ytdlp.ts` accumulates finished streams so the bar only moves forward.
-- **Size estimates must mirror yt-dlp's own format preference** (AV1 → VP9 → H.264, not
-  highest bitrate), or the number shown in the picker won't be the file you get.
+- **yt-dlp defaults to AV1**, which QuickTime and older Windows players cannot decode —
+  a downloaded `.mp4` simply refuses to open. Grabbit passes
+  `--format-sort res,vcodec:h264,acodec:aac` so files come back as H.264 + AAC. The
+  order matters: resolution has to lead, because YouTube only serves H.264 up to 1080p
+  and sorting by codec first would hand back a 1080p file to someone who asked for 4K.
+  1440p and 4K are therefore VP9, and the picker says so.
+- **Size estimates come from yt-dlp's own ordering, not a reimplementation of it.**
+  `--dump-single-json` returns `formats` already sorted worst-to-best under the
+  `--format-sort` that was passed, so the last match is exactly what `bestvideo` will
+  choose. The probe and the download pass the same sort, which is what keeps the size
+  in the picker equal to the size on disk.
 - **yt-dlp needs a JavaScript runtime** for full YouTube extraction. Without one it
   warns that extraction is deprecated and silently offers fewer formats. Rather than
   making users install Deno or Node, Grabbit points it at **its own Electron binary**
@@ -119,13 +128,17 @@ Both scripts drive the actual app through Playwright rather than mocking it, bec
 every real bug in this codebase so far has been in the seam between the UI and yt-dlp,
 where a unit test would have been mocked into agreeing with itself.
 
-- **`scripts/verify.mjs`** — suites for `input`, `autostart`, `queue`, `cancel`,
-  `concurrency`, and `clipboard`: URL validation, the primary Download button
-  auto-starting at the default quality, Pause all / Resume all, pause keeping the
+- **`scripts/verify.mjs`** — suites for `input`, `autostart`, `codecs`, `queue`,
+  `cancel`, `concurrency`, and `clipboard`: URL validation, the primary Download button
+  auto-starting at the default quality, H.264 where it exists and a warning where it
+  does not, Pause all / Resume all, pause keeping the
   `.part` file while cancel deletes it, the simultaneous-downloads limit (including
   raising it mid-flight), and clipboard watching with the ⌘V shortcut. It runs real
   downloads over the network, so a full pass takes several minutes and resets the
-  settings/history store first.
+  settings/history store first. Back-to-back suites make a lot of requests to the same
+  video and YouTube will occasionally throttle them; a suite that fails this way says
+  so and the remaining suites still run. Re-run the single suite to confirm
+  (`npm run verify queue`).
 - **`scripts/smoke.mjs`** — walks every screen and screenshots it; with `--url` it runs
   one download end to end, optionally exercising `--pause`.
 

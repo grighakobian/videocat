@@ -21,6 +21,14 @@ export interface FormatChoice {
   detail: string // "640 MB" or "estimated"
   kind: MediaKind
   height: number | null
+  /** Video codec of the stream this resolves to, e.g. "H.264", "VP9". Null for audio. */
+  codecLabel: string | null
+  /**
+   * False when the result needs a modern player. YouTube only offers H.264 up to
+   * 1080p, so 1440p and 4K necessarily arrive as VP9 or AV1, which QuickTime and
+   * older Windows players cannot decode.
+   */
+  widelyCompatible: boolean
   /** yt-dlp -f selector this choice maps to. */
   selector: string
   /** Bytes, when yt-dlp reports (or estimates) a size. */

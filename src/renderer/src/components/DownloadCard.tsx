@@ -74,6 +74,13 @@ function FormatPicker({ item }: DownloadCardProps): JSX.Element {
           Subtitles (.srt)
         </label>
       </div>
+      {choice && !choice.widelyCompatible ? (
+        <div className="picker__note">
+          YouTube only offers H.264 up to 1080p, so {choice.label.split(' · ')[0]} arrives as{' '}
+          {choice.codecLabel}. QuickTime cannot play it — use VLC or IINA, or pick 1080p for a
+          file that plays anywhere.
+        </div>
+      ) : null}
       <div className="picker__confirm">
         <button
           type="button"

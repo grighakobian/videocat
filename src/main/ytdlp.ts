@@ -13,6 +13,16 @@ const DEBUG = process.env.GRABBIT_DEBUG === '1'
 const FILE_MARKER = 'GRABBIT_FILE:'
 const PROGRESS_MARKER = 'GRABBIT_PROGRESS'
 const ALREADY_DOWNLOADED = 'has already been downloaded'
+
+/**
+ * Resolution first, then the most widely playable codecs. Resolution has to lead:
+ * YouTube only serves H.264 up to 1080p, so sorting by codec first would silently
+ * hand back a 1080p file to someone who asked for 4K.
+ *
+ * Both the probe and the download pass this, which is what keeps the size in the
+ * picker equal to the size on disk.
+ */
+const FORMAT_SORT = 'res,vcodec:h264,acodec:aac'
 const DESTINATION_PREFIX = '[download] Destination:'
 const THUMBNAIL_PREFIX = '[info] Writing video thumbnail'
 
@@ -37,16 +47,24 @@ const MP3_BITRATE_KBPS = 320
 
 const HEIGHT_LABELS: Record<number, string> = { 2160: '4K', 1440: '1440p' }
 
-/**
- * yt-dlp's default format sort prefers AV1, then VP9, then H.264 — not the highest
- * bitrate. Mirroring that order is what makes our size estimates match the real download.
- */
-const VCODEC_PREFERENCE = ['av01', 'vp9.2', 'vp09.2', 'vp09', 'vp9', 'avc1', 'h264']
+/** Human name for a stream's video codec, and whether it plays without a modern player. */
+const VCODEC_LABELS: [prefix: string, label: string, widelyCompatible: boolean][] = [
+  ['avc1', 'H.264', true],
+  ['h264', 'H.264', true],
+  ['hev1', 'HEVC', false],
+  ['hvc1', 'HEVC', false],
+  ['vp09', 'VP9', false],
+  ['vp9', 'VP9', false],
+  ['av01', 'AV1', false]
+]
 
-function vcodecRank(codec: string | undefined): number {
-  if (!codec) return VCODEC_PREFERENCE.length
-  const index = VCODEC_PREFERENCE.findIndex((prefix) => codec.toLowerCase().startsWith(prefix))
-  return index === -1 ? VCODEC_PREFERENCE.length : index
+function describeVcodec(codec: string | undefined): { label: string | null; compatible: boolean } {
+  if (!codec || codec === 'none') return { label: null, compatible: true }
+  const match = VCODEC_LABELS.find(([prefix]) => codec.toLowerCase().startsWith(prefix))
+  // An unrecognised codec is reported as-is rather than silently claimed compatible.
+  return match
+    ? { label: match[1], compatible: match[2] }
+    : { label: codec.split('.')[0].toUpperCase(), compatible: false }
 }
 
 export const AUDIO_FORMAT_ID = 'audio:mp3'
@@ -130,28 +148,20 @@ function heightLabel(height: number): string {
 }
 
 /**
- * Picks the stream our selector will actually land on: highest resolution at or below
- * `height`, mp4 first (to match `bestvideo[height<=H][ext=mp4]`), then highest bitrate.
+ * The stream our selector will actually land on. yt-dlp returns `formats` already
+ * ordered worst-to-best under the `--format-sort` we passed, so the last match is
+ * precisely what `bestvideo[height<=H]` resolves to — no need to replicate its
+ * ranking rules here, and no way for the two to drift apart.
  */
 function bestVideoAt(formats: RawFormat[], height: number): RawFormat | undefined {
   return formats
     .filter((f) => isVideoOnly(f) && typeof f.height === 'number' && f.height <= height)
-    .sort(
-      (a, b) =>
-        (b.height ?? 0) - (a.height ?? 0) ||
-        Number(b.ext === 'mp4') - Number(a.ext === 'mp4') ||
-        vcodecRank(a.vcodec) - vcodecRank(b.vcodec) ||
-        (b.tbr ?? 0) - (a.tbr ?? 0)
-    )[0]
+    .at(-1)
 }
 
-/** Mirrors `bestaudio[ext=m4a]`, the first branch of our audio selector. */
+/** What `bestaudio` resolves to — again, the last entry in yt-dlp's sorted list. */
 function bestAudio(formats: RawFormat[]): RawFormat | undefined {
-  return formats
-    .filter(isAudioOnly)
-    .sort(
-      (a, b) => Number(b.ext === 'm4a') - Number(a.ext === 'm4a') || (b.tbr ?? 0) - (a.tbr ?? 0)
-    )[0]
+  return formats.filter(isAudioOnly).at(-1)
 }
 
 function sizeLabel(bytes: number | null, estimated: boolean): string {
@@ -163,7 +173,7 @@ function sizeLabel(bytes: number | null, estimated: boolean): string {
 function bestProgressiveAt(formats: RawFormat[], height: number): RawFormat | undefined {
   return formats
     .filter((f) => f.vcodec !== 'none' && f.acodec !== 'none' && (f.height ?? 0) <= height)
-    .sort((a, b) => (b.height ?? 0) - (a.height ?? 0) || (b.tbr ?? 0) - (a.tbr ?? 0))[0]
+    .at(-1)
 }
 
 export function buildFormatChoices(formats: RawFormat[], durationSeconds: number | null): FormatChoice[] {
@@ -196,29 +206,33 @@ export function buildFormatChoices(formats: RawFormat[], durationSeconds: number
       estimated = isEstimated(progressive)
     }
 
+    const codec = describeVcodec((video ?? progressive)?.vcodec)
     choices.push({
       id: `video:${height}`,
       label: `${heightLabel(height)} · MP4`,
-      detail: sizeLabel(approxBytes, estimated),
+      detail: [sizeLabel(approxBytes, estimated), codec.label].filter(Boolean).join(' · '),
       kind: 'video',
       height,
-      selector: [
-        `bestvideo[height<=${height}][ext=mp4]+bestaudio[ext=m4a]`,
-        `bestvideo[height<=${height}]+bestaudio`,
-        `best[height<=${height}]`
-      ].join('/'),
+      codecLabel: codec.label,
+      widelyCompatible: codec.compatible,
+      // Codec preference is expressed through FORMAT_SORT, not here, so that asking
+      // for 4K never quietly resolves to a lower-resolution H.264 stream.
+      selector: `bestvideo[height<=${height}]+bestaudio/best[height<=${height}]`,
       approxBytes
     })
   }
 
   if (choices.length === 0) {
     // Live streams and odd extractors report no heights; still let the user grab "best".
+    const codec = describeVcodec(bestVideoAt(formats, Number.MAX_SAFE_INTEGER)?.vcodec)
     choices.push({
       id: 'video:best',
       label: 'Best available · MP4',
-      detail: 'size unknown',
+      detail: ['size unknown', codec.label].filter(Boolean).join(' · '),
       kind: 'video',
       height: null,
+      codecLabel: codec.label,
+      widelyCompatible: codec.compatible,
       selector: 'bestvideo+bestaudio/best',
       approxBytes: null
     })
@@ -235,6 +249,9 @@ export function buildFormatChoices(formats: RawFormat[], durationSeconds: number
     detail: sizeLabel(mp3Bytes, true),
     kind: 'audio',
     height: null,
+    codecLabel: null,
+    // MP3 plays everywhere, whatever the source stream was.
+    widelyCompatible: true,
     selector: 'bestaudio/best',
     approxBytes: mp3Bytes
   })
@@ -255,6 +272,8 @@ export class YtDlp {
       '--no-progress',
       '--socket-timeout',
       '20',
+      '--format-sort',
+      FORMAT_SORT,
       ...this.binaries.jsRuntimeArgs(),
       url
     ]
@@ -303,6 +322,8 @@ export class YtDlp {
       '%(title).180B [%(id)s].%(ext)s',
       '--format',
       choice.selector,
+      '--format-sort',
+      FORMAT_SORT,
       ...this.binaries.jsRuntimeArgs()
     ]
 

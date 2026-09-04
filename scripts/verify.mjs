@@ -4,7 +4,7 @@
  *   node scripts/verify.mjs            # every suite
  *   node scripts/verify.mjs clipboard  # one suite
  *
- * Suites: input, autostart, queue, cancel, concurrency, clipboard.
+ * Suites: input, autostart, codecs, queue, cancel, concurrency, clipboard.
  * These hit the network and run real downloads, so a full pass takes a few minutes.
  * State is reset first, so anything already in ~/Movies/Grabbit is left alone but the
  * settings/history store is cleared.
@@ -63,6 +63,9 @@ async function withApp(fn) {
 
   try {
     await fn(win)
+  } catch (error) {
+    // One suite failing should not hide the results of the ones after it.
+    check(`suite completed`, false, error.message.split('\n')[0])
   } finally {
     await app.close()
   }
@@ -82,7 +85,18 @@ const helpers = (win) => ({
     await win.locator('.nav__item', { hasText: 'Downloads' }).click()
     await win.locator('.urlbar__field input').fill(VIDEO)
     await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
-    await win.locator('.picker').last().waitFor({ timeout: 180_000 })
+    try {
+      await win.locator('.picker').last().waitFor({ timeout: 180_000 })
+    } catch {
+      // Usually the probe failed. Surface what the app said rather than a bare timeout —
+      // a long run makes many requests and YouTube does throttle them.
+      const reported = await win.locator('.card__error').allTextContents()
+      throw new Error(
+        reported.length
+          ? `format picker never appeared; app reported: ${reported[0]}`
+          : 'format picker never appeared and no error was shown (slow or throttled probe?)'
+      )
+    }
     await win.locator('.picker').last().locator('.option', { hasText: format }).first().click()
     await win.locator('.picker').last().locator('.btn--sm', { hasText: 'Start' }).click()
     await sleep(500)
@@ -132,6 +146,37 @@ const suites = {
     check('starts without the user picking a format', started)
     const chips = (await win.locator('.card__meta').first().textContent()) ?? ''
     check('uses the 1080p default quality', /1080p/.test(chips), chips)
+  },
+
+  /**
+   * Guards the QuickTime bug: yt-dlp defaults to AV1, which macOS cannot decode, so
+   * a downloaded file would not open. Rungs that can be H.264 must be, and rungs that
+   * cannot must say so rather than silently producing an unplayable file.
+   */
+  async codecs(win) {
+    const h = helpers(win)
+    await h.input.fill(VIDEO)
+    await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
+    await win.locator('.picker').waitFor({ timeout: 180_000 })
+
+    const optionText = async (label) =>
+      (await win.locator('.option', { hasText: label }).first().textContent()) ?? ''
+    check('1080p is H.264', /H\.264/.test(await optionText('1080p')), await optionText('1080p'))
+    check('720p is H.264', /H\.264/.test(await optionText('720p')), await optionText('720p'))
+    // YouTube has no H.264 above 1080p, so 4K is necessarily VP9/AV1.
+    check('4K reports its codec', /VP9|AV1/.test(await optionText('4K')), await optionText('4K'))
+
+    await win.locator('.option', { hasText: '4K' }).click()
+    await sleep(300)
+    check('4K warns that QuickTime cannot play it',
+      /QuickTime/.test((await win.locator('.picker__note').textContent().catch(() => '')) ?? ''))
+
+    await win.locator('.option', { hasText: '1080p' }).click()
+    await sleep(300)
+    check('1080p shows no warning', (await win.locator('.picker__note').count()) === 0)
+
+    // Resolution must never be traded away for a compatible codec.
+    check('4K is still offered at 4K', /4K/.test(await optionText('4K')))
   },
 
   /** Pause all / Resume all across the whole queue. */
