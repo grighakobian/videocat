@@ -1,0 +1,101 @@
+{
+  // Grabbit is an Electron app, so "running" it means three things at once: the
+  // electron-vite dev server, the main process (Node), and the renderer (Chromium).
+  // Press F5 on "Grabbit" to just run it. Ports are electron-vite's defaults:
+  // 5858 = main-process inspector, 9222 = renderer DevTools, 5173 = renderer dev server.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // The one to press F5 on. Bundles main + preload, starts the renderer dev server
+      // with HMR, and launches the app. Breakpoints in src/main and src/preload are live;
+      // for src/renderer as well, run the "Grabbit + renderer" compound instead.
+      "name": "Grabbit",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-vite",
+      "windows": {
+        // npm writes a .cmd shim on Windows and VS Code will not infer the extension.
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-vite.cmd"
+      },
+      "runtimeArgs": ["dev", "--sourcemap", "--inspect", "--remoteDebuggingPort=9222"],
+      // electron-vite spawns Electron as a child process; this attaches the debugger to it.
+      "autoAttachChildProcesses": true,
+      "console": "integratedTerminal",
+      "env": {
+        // Editors that are themselves Electron (VS Code, Claude Code) export this, which
+        // makes the Electron binary boot as plain Node and never open a window. `null`
+        // removes it from the launched process rather than setting it to "null".
+        "ELECTRON_RUN_AS_NODE": null
+      },
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "order": 1 }
+    },
+    {
+      // Attaches to the renderer. On its own it expects the app to be running already;
+      // normally you want the "Grabbit + renderer" compound.
+      "name": "Renderer",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/src/renderer",
+      // The window can take ~25s to appear on a cold start, while yt-dlp is provisioned.
+      "timeout": 60000,
+      "presentation": { "order": 3 }
+    },
+    {
+      // For when the app is already running from a terminal:
+      //   npm run dev -- --inspect --sourcemap
+      "name": "Attach to main process",
+      "type": "node",
+      "request": "attach",
+      "port": 5858,
+      "cwd": "${workspaceFolder}",
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "order": 4 }
+    },
+    {
+      // Runs the production bundle from out/ rather than the dev server — the closest
+      // thing to the packaged app without building an installer.
+      "name": "Preview production build",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-vite",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron-vite.cmd"
+      },
+      // `preview` bundles before it launches, so no preLaunchTask is needed.
+      "runtimeArgs": ["preview"],
+      "console": "integratedTerminal",
+      "env": { "ELECTRON_RUN_AS_NODE": null },
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "order": 5 }
+    },
+    {
+      // The behavioural suite from the README. Pass a single suite name in `args`
+      // (input, autostart, queue, cancel, concurrency, clipboard) to narrow it down.
+      "name": "Verification suite",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/scripts/verify.mjs",
+      "console": "integratedTerminal",
+      "env": { "ELECTRON_RUN_AS_NODE": null },
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "order": 6 }
+    }
+  ],
+  "compounds": [
+    {
+      // Main-process and renderer breakpoints together.
+      "name": "Grabbit + renderer",
+      "configurations": ["Grabbit", "Renderer"],
+      "stopAll": true,
+      "presentation": { "order": 2 }
+    }
+  ]
+}

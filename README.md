@@ -22,6 +22,11 @@ npm install
 npm run dev
 ```
 
+In VS Code, press **F5** — `.vscode/launch.json` has configs for both platforms:
+*Grabbit* (run with main-process breakpoints), *Grabbit + renderer* (add renderer
+breakpoints), *Preview production build*, and *Verification suite*. Each unsets
+`ELECTRON_RUN_AS_NODE`, for the reason below.
+
 On first launch Grabbit downloads `yt-dlp` into its user-data folder and keeps it
 updated (checked at most once a day). `ffmpeg` ships with the app via `ffmpeg-static`.
 
