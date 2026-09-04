@@ -1,0 +1,35 @@
+appId: com.grabbit.app
+productName: Grabbit
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**
+  - package.json
+  - '!**/.vscode/*'
+  - '!**/{.eslintrc,.prettierrc,tsconfig*.json,electron.vite.config.ts}'
+# ffmpeg-static ships a real executable; it cannot run from inside the asar archive.
+asarUnpack:
+  - node_modules/ffmpeg-static/**
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.utilities
+  darkModeSupport: false
+  # yt-dlp and ffmpeg are spawned as child processes and JIT is needed by Electron itself.
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSAppleEventsUsageDescription: Grabbit uses Apple Events to reveal downloaded files in Finder.
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+linux:
+  target: [AppImage]
+  category: Utility
