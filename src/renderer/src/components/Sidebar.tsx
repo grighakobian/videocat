@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import type { DiskSpace, PageId } from '@shared/types'
 import { formatBytes } from '../lib/format'
 import { CheckCircleIcon, DownloadIcon, GridIcon, SlidersIcon } from './Icons'
+import { Logo } from './Logo'
 
 interface SidebarProps {
   page: PageId
@@ -24,7 +25,7 @@ export function Sidebar({ page, onNavigate, activeCount, disk }: SidebarProps): 
   return (
     <nav className="sidebar">
       <div className="brand">
-        <div className="brand__mark">V</div>
+        <Logo />
         <div className="brand__name">VideoCat</div>
       </div>
 

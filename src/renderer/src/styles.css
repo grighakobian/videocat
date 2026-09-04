@@ -145,19 +145,8 @@ a:hover {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   padding: 0 8px;
-}
-.brand__mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--accent);
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 16px;
 }
 .brand__name {
   font-weight: 700;
