@@ -11,7 +11,7 @@ already handled here (`--print` implying `--quiet`, two-phase merged downloads, 
 size estimates, the JS-runtime trick, pause/resume/cancel semantics, cold-start caching).
 **Read the "Notes on the download engine" section before touching `src/main/ytdlp.ts`.**
 
-The working directory is named `grabbit` and `docs/` still uses the old *Grabbit* name; the
+The working directory is named `videocat-app` and `docs/` still uses the old *Grabbit* name; the
 product, remote, and every identifier in code are **VideoCat** (`videocat:*` IPC channels,
 `window.videocat`, `VIDEOCAT_DEBUG`, `videocat.json`). The design this implements is
 `docs/Grabbit Downloader v2.dc.html` (README calls it "VideoCat Downloader v2.dc.html").
