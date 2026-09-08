@@ -69,9 +69,14 @@ code or vice versa, and neither can reach the other's globals.
   and `buildDownloadArgs()`; that is what keeps the size in the picker equal to the size on disk,
   so change them together or not at all. Format choices are derived from yt-dlp's own ordering
   (`.at(-1)` of the filtered list) rather than a reimplementation of its ranking.
-- `binaries.ts` — provisions yt-dlp into `userData/bin` and self-updates it. Both the version
-  string (keyed to the binary's mtime) and the `-U` timestamp are cached *in the store*, because
-  the standalone binary's cold start is 15–25s and the URL bar stays disabled until it answers.
+- `binaries.ts` — provisions yt-dlp's *unpacked* build (`yt-dlp_macos.zip` etc.) into
+  `userData/bin/yt-dlp/` and updates it itself, since `-U` refuses to run on unpacked builds.
+  Never switch back to the single-file executable: it re-extracts on every launch and macOS
+  re-validates every library each time, which was a 13–15s stall per probe and per download.
+  The version string (keyed to the executable's mtime) and the update-check timestamp are
+  cached *in the store*, because a freshly unpacked build's first launch still costs ~13s and
+  the URL bar stays disabled until `--version` answers. Unpacking uses the OS's own `tar`
+  (bsdtar reads zip on macOS and Windows) so nothing is added to the bundle.
 - `fileWatcher.ts` — `fs.watch` on the folders that hold finished files, filtered to the
   history entries' own names (yt-dlp's `.part` churn in the same folder is ignored). It
   never recurses; every path is known. The 30s housekeeping tick in `index.ts` re-stats

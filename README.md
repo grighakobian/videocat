@@ -114,13 +114,22 @@ A few things about driving `yt-dlp` that are easy to get wrong, and are handled 
   `--continue`. **Cancel** stops and deletes the partial files — and because a cancel
   can arrive after the process already exited (pause, then cancel), the queue tracks
   those paths rather than the job.
-- yt-dlp's standalone binary has a slow (~15–25s) cold start, so a download shows
-  "Starting…" until real bytes move.
-- That cold start is expensive enough that two things are cached in the store rather
-  than in memory, so only a genuinely new binary pays it: the version string (keyed to
-  the binary's mtime — otherwise every launch would sit with the URL bar disabled while
-  `--version` ran) and the `yt-dlp -U` timestamp, which rate-limits updates to once a
-  day across restarts. Settings → Update engine forces a check.
+- **VideoCat fetches yt-dlp's *unpacked* build (`yt-dlp_macos.zip`, `yt-dlp_win.zip`,
+  …), not the single-file executable.** The single-file build unpacks a ~70MB Python
+  runtime into a brand-new temp folder on every launch, and macOS then validates the
+  code signature of every freshly written library before it may load — 13–15s of
+  waiting per probe and per download, on every launch, forever. The unpacked build keeps
+  its files in `userData/bin/yt-dlp/`, so the OS validates them once and yt-dlp starts
+  in ~0.2s. A probe drops from ~15s to under 3s.
+- The very first launch of a freshly unpacked build still pays that one-time validation
+  (~13s, shown as "Preparing the download engine…"). The version string is cached in the
+  store keyed to the executable's mtime so it happens once per build, not per launch.
+- **yt-dlp's `-U` refuses to run on the unpacked build** ("Auto-update is not supported
+  for unpackaged executables"), so `binaries.ts` updates it itself: once a day it requests
+  the latest-release asset, reads the release tag out of GitHub's redirect, and only if it
+  differs from the installed version downloads the zip, unpacks it into `yt-dlp.new/`, and
+  swaps folders. The check timestamp lives in the store so it survives restarts.
+  Settings → Update engine forces a check.
 
 ## Development
 
