@@ -799,7 +799,9 @@ a:hover {
 .settings__group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  /* No gap: rows share hairlines (see below), so any gap here shows up as a break in
+     the group's left and right borders at every row boundary. */
+  gap: 0;
 }
 .settings__group > .section-label {
   margin-bottom: 8px;

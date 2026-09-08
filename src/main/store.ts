@@ -18,7 +18,7 @@ function defaultSettings(): Settings {
   return {
     downloadDirectory: join(app.getPath('videos'), 'VideoCat'),
     defaultQuality: '1080',
-    maxConcurrentDownloads: 3,
+    maxConcurrentDownloads: 5,
     watchClipboard: true,
     downloadSubtitles: false,
     limitSpeed: false,

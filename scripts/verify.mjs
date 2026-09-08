@@ -248,7 +248,8 @@ const suites = {
   async concurrency(win) {
     const h = helpers(win)
     await h.go('Settings')
-    for (let i = 0; i < 2; i += 1) {
+    // Step down to 1 regardless of the default, so changing the default does not break this.
+    while ((await h.setting('Simultaneous').locator('.stepper__value').textContent()) !== '1') {
       await h.setting('Simultaneous').locator('button[aria-label="Fewer simultaneous downloads"]').click()
       await sleep(250)
     }
