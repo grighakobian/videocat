@@ -40,6 +40,16 @@ export const CheckCircleIcon = (props: IconProps): JSX.Element => (
   </Icon>
 )
 
+export const AlertCircleIcon = (props: IconProps): JSX.Element => (
+  <Icon {...props}>
+    <g>
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M8 5.2v3.3" />
+      <path d="M8 10.9v.1" />
+    </g>
+  </Icon>
+)
+
 export const GridIcon = (props: IconProps): JSX.Element => (
   <Icon {...props}>
     <g>

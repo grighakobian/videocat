@@ -72,6 +72,12 @@ code or vice versa, and neither can reach the other's globals.
 - `binaries.ts` — provisions yt-dlp into `userData/bin` and self-updates it. Both the version
   string (keyed to the binary's mtime) and the `-U` timestamp are cached *in the store*, because
   the standalone binary's cold start is 15–25s and the URL bar stays disabled until it answers.
+- `fileWatcher.ts` — `fs.watch` on the folders that hold finished files, filtered to the
+  history entries' own names (yt-dlp's `.part` churn in the same folder is ignored). It
+  never recurses; every path is known. The 30s housekeeping tick in `index.ts` re-stats
+  history and re-syncs the watcher as a fallback, so a `fileExists` flip that the watcher
+  misses is at most 30s late. `refreshFileExistence()` returns `changed` so nothing is
+  pushed when nothing moved.
 - `store.ts` — settings + history as one atomically-written JSON file in `userData`. Loading
   merges over `defaultSettings()`, so a new setting only needs adding in three places:
   `Settings` in `shared/types.ts`, `defaultSettings()`, and the Settings page.

@@ -35,6 +35,7 @@
   --danger-soft: #fbeae2;
   --warn-bg: #fbf4df;
   --warn-border: #ead9a8;
+  --warn-text: #8a6a16;
   --audio-thumb: #f5efe0;
   --radius-sm: 6px;
   --radius: 10px;
@@ -472,6 +473,18 @@ a:hover {
   font-size: 12px;
   color: var(--text-soft);
 }
+/* A finished file that is no longer where we put it. Warning tones, not danger: the
+   download itself succeeded, the user just moved or deleted the result. */
+.chip--missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  padding-top: 0;
+  padding-bottom: 0;
+}
 
 .thumb {
   width: 136px;
@@ -502,8 +515,26 @@ a:hover {
   object-fit: cover;
   display: block;
 }
+/* Portrait artwork: show the whole picture, letter-boxed over a blurred copy of itself
+   so the bars pick up its colours instead of reading as empty. The backdrop is scaled
+   past the frame because blur fades to transparent at the edges, which would otherwise
+   leave a soft halo of the striped placeholder showing through. */
+.thumb--portrait .thumb__backdrop {
+  position: absolute;
+  inset: 0;
+  transform: scale(1.3);
+  filter: blur(10px) saturate(1.15) brightness(0.9);
+}
+/* Absolute, not in-flow: as a grid item the image's 100% height would resolve against
+   an auto row and balloon to its intrinsic height, cropping it again. */
+.thumb--portrait .thumb__image {
+  position: absolute;
+  inset: 0;
+  object-fit: contain;
+}
 .thumb__duration {
   position: absolute;
+  z-index: 1;
   right: 6px;
   bottom: 6px;
   background: rgba(20, 18, 15, 0.78);
@@ -672,6 +703,18 @@ a:hover {
   display: grid;
   place-items: center;
 }
+/* Same row, but the file has since been moved or deleted: keep it for the record,
+   swap the tick for a warning and stop it pretending to be clickable. */
+.row--missing {
+  color: var(--muted);
+  cursor: default;
+}
+.row--missing .row__tick {
+  color: var(--warn-text);
+}
+.row--missing .row__meta {
+  color: var(--warn-text);
+}
 .row__title {
   flex: 1;
   min-width: 0;
@@ -697,7 +740,11 @@ a:hover {
   background: #fff;
 }
 .history-item--missing {
-  opacity: 0.55;
+  /* Dim, but not so far that the "Missing from disk" chip stops reading as a warning. */
+  opacity: 0.72;
+}
+.history-item--missing .card__meta .chip--missing {
+  opacity: 1;
 }
 .history-item .thumb {
   width: 92px;

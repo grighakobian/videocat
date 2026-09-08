@@ -15,11 +15,17 @@ import type { AppSnapshot, ClipboardHit, DiskSpace, EngineStatus, Settings } fro
 import { BinaryManager } from './binaries'
 import { ClipboardWatcher, isHttpUrl } from './clipboardWatcher'
 import { readDiskSpace } from './disk'
+import { HistoryFileWatcher } from './fileWatcher'
 import { DownloadQueue } from './queue'
 import { Store } from './store'
 import { YtDlp } from './ytdlp'
 
-const DISK_POLL_INTERVAL_MS = 30_000
+/**
+ * Cadence of the housekeeping tick: disk space, plus a re-stat of history as a fallback
+ * for the file watcher (network volumes and some editors' save-by-replace can slip past
+ * `fs.watch`; a periodic check keeps the display honest either way).
+ */
+const HOUSEKEEPING_INTERVAL_MS = 30_000
 
 /** Must match the `.titlebar` height in the renderer stylesheet. */
 const TITLEBAR_HEIGHT = 46
@@ -32,8 +38,9 @@ let store: Store
 let binaries: BinaryManager
 let queue: DownloadQueue
 let clipboardWatcher: ClipboardWatcher
+let fileWatcher: HistoryFileWatcher
 let disk: DiskSpace | null = null
-let diskTimer: NodeJS.Timeout | null = null
+let housekeepingTimer: NodeJS.Timeout | null = null
 
 function send(channel: string, payload: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -134,7 +141,7 @@ function buildSnapshot(): AppSnapshot {
     settings: store.getSettings(),
     queue: queue.list(),
     // Re-stat here rather than trusting a startup pass; files move while the app runs.
-    history: store.refreshFileExistence(),
+    history: store.refreshFileExistence().history,
     disk,
     engine: binaries.getStatus()
   }
@@ -143,6 +150,30 @@ function buildSnapshot(): AppSnapshot {
 async function refreshDisk(): Promise<void> {
   disk = await readDiskSpace(store.getSettings().downloadDirectory)
   send(IPC.onDisk, disk)
+}
+
+/** Re-checks which finished files are still on disk and pushes history only if any flipped. */
+function refreshHistoryFiles(): void {
+  const { history, changed } = store.refreshFileExistence()
+  if (changed) send(IPC.onHistory, history)
+}
+
+/** Points the file watcher at the folders the current history entries live in. */
+function syncFileWatcher(): void {
+  fileWatcher.sync(store.getHistory().map((entry) => entry.outputPath))
+}
+
+/** History changed in the store: tell the renderer and re-aim the watcher. */
+function publishHistory(): void {
+  send(IPC.onHistory, store.getHistory())
+  syncFileWatcher()
+}
+
+function housekeeping(): void {
+  void refreshDisk()
+  refreshHistoryFiles()
+  // Also re-attempts folders that could not be watched earlier (e.g. an unmounted drive).
+  syncFileWatcher()
 }
 
 function applyClipboardSetting(settings: Settings): void {
@@ -222,12 +253,12 @@ function registerIpc(): void {
 
   ipcMain.handle(IPC.removeHistoryEntry, (_event, id: string) => {
     store.removeHistoryEntry(id)
-    send(IPC.onHistory, store.getHistory())
+    publishHistory()
   })
 
   ipcMain.handle(IPC.clearHistory, () => {
     store.clearHistory()
-    send(IPC.onHistory, store.getHistory())
+    publishHistory()
   })
 
   ipcMain.handle(IPC.readClipboardUrl, async () => {
@@ -257,7 +288,7 @@ function bootstrap(): void {
   queue = new DownloadQueue(ytdlp, store, {
     onChange: () => send(IPC.onQueue, queue.list()),
     onCompleted: (entry) => {
-      send(IPC.onHistory, store.getHistory())
+      publishHistory()
       void refreshDisk()
       if (store.getSettings().notifyOnComplete && Notification.isSupported()) {
         const notification = new Notification({
@@ -272,6 +303,7 @@ function bootstrap(): void {
   })
 
   clipboardWatcher = new ClipboardWatcher((hit: ClipboardHit) => send(IPC.onClipboardHit, hit))
+  fileWatcher = new HistoryFileWatcher(refreshHistoryFiles)
 }
 
 app.whenReady().then(async () => {
@@ -282,8 +314,9 @@ app.whenReady().then(async () => {
   createWindow()
 
   applyClipboardSetting(store.getSettings())
+  syncFileWatcher()
   await refreshDisk()
-  diskTimer = setInterval(() => void refreshDisk(), DISK_POLL_INTERVAL_MS)
+  housekeepingTimer = setInterval(housekeeping, HOUSEKEEPING_INTERVAL_MS)
   void binaries.ensureReady()
 
   app.on('activate', () => {
@@ -296,7 +329,8 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
-  if (diskTimer) clearInterval(diskTimer)
+  if (housekeepingTimer) clearInterval(housekeepingTimer)
   clipboardWatcher?.stop()
+  fileWatcher?.stop()
   queue?.shutdown()
 })

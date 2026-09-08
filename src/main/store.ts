@@ -135,8 +135,11 @@ export class Store {
     this.persist()
   }
 
-  /** Marks entries whose file has since been moved or deleted, so the UI can dim them. */
-  refreshFileExistence(): HistoryEntry[] {
+  /**
+   * Marks entries whose file has since been moved or deleted (or put back), so the UI
+   * can show them as missing. `changed` lets callers skip a push when nothing moved.
+   */
+  refreshFileExistence(): { history: HistoryEntry[]; changed: boolean } {
     let changed = false
     this.data.history = this.data.history.map((entry) => {
       const exists = existsSync(entry.outputPath)
@@ -144,6 +147,6 @@ export class Store {
       return exists === entry.fileExists ? entry : { ...entry, fileExists: exists }
     })
     if (changed) this.persist()
-    return this.getHistory()
+    return { history: this.getHistory(), changed }
   }
 }

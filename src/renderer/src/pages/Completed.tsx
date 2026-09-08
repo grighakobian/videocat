@@ -1,6 +1,6 @@
 import { useMemo, type JSX } from 'react'
 import type { HistoryEntry } from '@shared/types'
-import { CheckCircleIcon } from '../components/Icons'
+import { AlertCircleIcon, CheckCircleIcon } from '../components/Icons'
 import { Thumb } from '../components/Thumb'
 import { formatBytes, formatTimeOfDay, groupByDay, pluralize } from '../lib/format'
 
@@ -64,11 +64,17 @@ export function CompletedPage({ history }: CompletedPageProps): JSX.Element {
                 <div className="card__meta">
                   <span className="chip">{entry.qualityLabel}</span>
                   <span className="chip">{entry.containerLabel}</span>
+                  {entry.fileExists ? null : (
+                    <span className="chip chip--missing" title={entry.outputPath}>
+                      <AlertCircleIcon size={12} />
+                      Missing from disk
+                    </span>
+                  )}
                   <span>
                     {formatBytes(entry.sizeBytes)}
                     {entry.fileExists
                       ? ` · finished ${formatTimeOfDay(entry.completedAt)}`
-                      : ' · file moved or deleted'}
+                      : ' · the file was moved or deleted'}
                   </span>
                 </div>
               </div>

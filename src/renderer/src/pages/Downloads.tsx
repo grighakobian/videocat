@@ -1,7 +1,7 @@
 import { useMemo, type JSX } from 'react'
 import type { DownloadItem, HistoryEntry } from '@shared/types'
 import { DownloadCard } from '../components/DownloadCard'
-import { CheckCircleIcon, DownloadIcon } from '../components/Icons'
+import { AlertCircleIcon, CheckCircleIcon, DownloadIcon } from '../components/Icons'
 import { formatBytes, formatSpeed, isSameDay } from '../lib/format'
 
 interface DownloadsPageProps {
@@ -95,16 +95,20 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
             <button
               key={entry.id}
               type="button"
-              className="row"
-              title={entry.outputPath}
+              className={`row${entry.fileExists ? '' : ' row--missing'}`}
+              title={entry.fileExists ? entry.outputPath : `${entry.outputPath} — moved or deleted`}
+              // A missing file has nothing to reveal; the row stays for the record.
+              disabled={!entry.fileExists}
               onClick={() => void window.videocat.revealFile(entry.outputPath)}
             >
               <span className="row__tick">
-                <CheckCircleIcon size={15} />
+                {entry.fileExists ? <CheckCircleIcon size={15} /> : <AlertCircleIcon size={15} />}
               </span>
               <span className="row__title">{entry.title}</span>
               <span className="row__meta">
-                {entry.qualityLabel} · {formatBytes(entry.sizeBytes)}
+                {entry.fileExists
+                  ? `${entry.qualityLabel} · ${formatBytes(entry.sizeBytes)}`
+                  : 'moved or deleted'}
               </span>
             </button>
           ))}

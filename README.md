@@ -79,6 +79,7 @@ src/
     queue.ts            ordering, concurrency, per-item lifecycle
     store.ts            settings + history, atomically persisted JSON
     clipboardWatcher.ts polls for copied video links
+    fileWatcher.ts      watches finished files so history shows moved/deleted ones
     disk.ts             free/total space for the sidebar
   preload/     index.ts                — the only surface the renderer can reach
   renderer/    React app (App, pages/, components/, lib/)
