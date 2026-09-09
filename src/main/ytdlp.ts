@@ -72,6 +72,7 @@ export const AUDIO_FORMAT_ID = 'audio:mp3'
 interface RawFormat {
   format_id?: string
   ext?: string
+  width?: number | null
   height?: number | null
   vcodec?: string
   acodec?: string
@@ -148,14 +149,40 @@ function heightLabel(height: number): string {
 }
 
 /**
+ * The "p" class of a stream: its shorter side. A 1920x1080 stream and a portrait
+ * 1080x1920 one (Reels, Shorts, TikTok, Facebook mobile video) are both 1080p, but
+ * yt-dlp reports the latter as height 1920 — a picker built on `height` alone offers
+ * "1080p" for it and then asks for `bestvideo[height<=1080]`, which matches nothing.
+ * yt-dlp's own `res` sort key is this same smallest dimension.
+ */
+function shortSide(format: RawFormat): number | null {
+  const { width, height } = format
+  if (typeof width === 'number' && typeof height === 'number') return Math.min(width, height)
+  if (typeof height === 'number') return height
+  if (typeof width === 'number') return width
+  return null
+}
+
+/** True when the best-quality video stream is taller than it is wide. */
+function isPortrait(formats: RawFormat[]): boolean {
+  const best = formats
+    .filter((f) => f.vcodec !== 'none' && typeof f.width === 'number' && typeof f.height === 'number')
+    .at(-1)
+  return Boolean(best) && (best!.height as number) > (best!.width as number)
+}
+
+/**
  * The stream our selector will actually land on. yt-dlp returns `formats` already
  * ordered worst-to-best under the `--format-sort` we passed, so the last match is
- * precisely what `bestvideo[height<=H]` resolves to — no need to replicate its
+ * precisely what `bestvideo[<side><=H]` resolves to — no need to replicate its
  * ranking rules here, and no way for the two to drift apart.
  */
 function bestVideoAt(formats: RawFormat[], height: number): RawFormat | undefined {
   return formats
-    .filter((f) => isVideoOnly(f) && typeof f.height === 'number' && f.height <= height)
+    .filter((f) => {
+      const side = shortSide(f)
+      return isVideoOnly(f) && side !== null && side <= height
+    })
     .at(-1)
 }
 
@@ -169,27 +196,44 @@ function sizeLabel(bytes: number | null, estimated: boolean): string {
   return estimated ? `~${formatBytes(bytes)}` : formatBytes(bytes)
 }
 
-/** Progressive (already-muxed) stream, the fallback when a video has no adaptive formats. */
+/**
+ * Progressive (already-muxed) stream, the fallback when a video has no adaptive formats.
+ * Streams with no reported dimensions (Facebook's bare `sd`/`hd`) are excluded: a
+ * numeric filter like `best[height<=720]` never matches them, so counting them here
+ * would offer a rung the download cannot honour.
+ */
 function bestProgressiveAt(formats: RawFormat[], height: number): RawFormat | undefined {
   return formats
-    .filter((f) => f.vcodec !== 'none' && f.acodec !== 'none' && (f.height ?? 0) <= height)
+    .filter((f) => {
+      const side = shortSide(f)
+      return f.vcodec !== 'none' && f.acodec !== 'none' && side !== null && side <= height
+    })
     .at(-1)
 }
 
 export function buildFormatChoices(formats: RawFormat[], durationSeconds: number | null): FormatChoice[] {
   const choices: FormatChoice[] = []
-  const availableHeights = new Set(
-    formats.filter((f) => f.vcodec !== 'none' && f.height).map((f) => f.height as number)
-  )
+  const availableClasses = formats
+    .filter((f) => f.vcodec !== 'none')
+    .map(shortSide)
+    .filter((side): side is number => side !== null)
+  // yt-dlp's filters compare one field to a number, so for a portrait video the "p"
+  // class lives in `width`. Orientation is a property of the video, so the probe and
+  // the download agree on which side to filter.
+  const side = isPortrait(formats) ? 'width' : 'height'
 
   for (const height of OFFERED_HEIGHTS) {
-    // Only offer a rung the video can actually reach.
-    if (![...availableHeights].some((h) => h >= height)) continue
+    // Only offer a rung the video can actually reach…
+    if (!availableClasses.some((c) => c >= height)) continue
     if (choices.length >= MAX_VIDEO_CHOICES) break
 
     const video = bestVideoAt(formats, height)
     const audio = bestAudio(formats)
     const progressive = bestProgressiveAt(formats, height)
+    // …and that some stream actually satisfies, or the selector below would fail with
+    // "Requested format is not available" (a video with only 720p and 1080p streams
+    // has nothing for a 480p rung).
+    if (!video && !progressive) continue
 
     let approxBytes: number | null = null
     let estimated = false
@@ -223,7 +267,7 @@ export function buildFormatChoices(formats: RawFormat[], durationSeconds: number
       widelyCompatible: codec.compatible,
       // Codec preference is expressed through FORMAT_SORT, not here, so that asking
       // for 4K never quietly resolves to a lower-resolution H.264 stream.
-      selector: `bestvideo[height<=${height}]+bestaudio/best[height<=${height}]`,
+      selector: `bestvideo[${side}<=${height}]+bestaudio/best[${side}<=${height}]`,
       approxBytes
     })
   }

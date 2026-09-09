@@ -104,6 +104,14 @@ A few things about driving `yt-dlp` that are easy to get wrong, and are handled 
   `--format-sort` that was passed, so the last match is exactly what `bestvideo` will
   choose. The probe and the download pass the same sort, which is what keeps the size
   in the picker equal to the size on disk.
+- **Quality rungs are the stream's shorter side, not its `height`.** A portrait
+  1080x1920 Reel/Short/Facebook video is reported by yt-dlp as height 1920, so a picker
+  built on `height` offers "1080p" and then asks for `bestvideo[height<=1080]`, which
+  matches nothing — "Requested format is not available". `buildFormatChoices` classes
+  streams by `min(width, height)` (yt-dlp's own `res` sort key) and filters on `width`
+  for portrait videos. It also drops a rung no stream satisfies, and ignores streams with
+  no dimensions at all (Facebook's bare `sd`/`hd`), because a numeric filter never
+  matches those either.
 - **yt-dlp needs a JavaScript runtime** for full YouTube extraction. Without one it
   warns that extraction is deprecated and silently offers fewer formats. Rather than
   making users install Deno or Node, VideoCat points it at **its own Electron binary**
