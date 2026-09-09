@@ -51,8 +51,12 @@ npm run pack:win   # NSIS installer (x64 + arm64)
 npm run pack       # both
 ```
 
-`npm run icon` regenerates `build/icon.png` from the brand mark; electron-builder
-derives the `.icns` and `.ico` from it.
+`npm run icon path/to/artwork.png` takes one square 1024px PNG as the whole tile, clips
+it to macOS's rounded corners, keeps a copy as `build/icon-artwork.png`, and writes
+`build/icon.png` (macOS grid, transparent margin), `build/icon-win.png` (full bleed;
+electron-builder derives the `.ico`) and `build/icon.icns`. `electron-builder.yml`
+points each platform at its own file. A bare `npm run icon` regenerates from the kept
+artwork, or draws the cat mark from `Logo.tsx` when there is none.
 
 Neither target is signed or notarized — add credentials before distributing. On macOS,
 electron-builder auto-discovers any signing identity in your keychain and will **hang**

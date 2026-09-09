@@ -12,6 +12,7 @@ files:
 asarUnpack:
   - node_modules/ffmpeg-static/**
 mac:
+  icon: build/icon.icns
   target:
     - target: dmg
       arch: [arm64, x64]
@@ -23,6 +24,8 @@ mac:
   extendInfo:
     NSAppleEventsUsageDescription: VideoCat uses Apple Events to reveal downloaded files in Finder.
 win:
+  # Full-bleed variant: Windows draws no margin of its own (see scripts/make-icons.mjs).
+  icon: build/icon-win.png
   target:
     - target: nsis
       arch: [x64, arm64]
