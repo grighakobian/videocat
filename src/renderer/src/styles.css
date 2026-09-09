@@ -613,6 +613,40 @@ a:hover {
   color: var(--danger);
 }
 
+/*
+ * Skeleton shown while a card's metadata is still being fetched. The gradient is
+ * twice the element's width and slides across it, so the highlight sweeps left to
+ * right. Declared after `.thumb` so the shimmer wins over its striped background.
+ */
+.shimmer {
+  background: linear-gradient(90deg, #ece9e3 0%, #ece9e3 35%, #f8f7f4 50%, #ece9e3 65%, #ece9e3 100%);
+  background-size: 200% 100%;
+  animation: videocat-shimmer 1.5s ease-in-out infinite;
+}
+.thumb--skeleton {
+  color: transparent;
+}
+.card__title--skeleton {
+  height: 14px;
+  width: 62%;
+  margin-top: 2px;
+  border-radius: 4px;
+}
+@keyframes videocat-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
 /* ---------- format picker ---------- */
 
 .picker {

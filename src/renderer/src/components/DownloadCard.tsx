@@ -105,6 +105,9 @@ function FormatPicker({ item }: DownloadCardProps): JSX.Element {
 }
 
 export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
+  // Metadata is still being fetched: the item has no formats yet and its title is the
+  // raw URL, which reads as a glitch rather than a title, so show a skeleton instead.
+  const resolving = item.status === 'awaiting-format' && item.formats.length === 0
   const showPicker = item.status === 'awaiting-format' && item.formats.length > 0
   const isRunning = item.status === 'downloading'
   const showProgress =
@@ -116,13 +119,21 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
   const stats = item.stage ?? [speed, eta].filter(Boolean).join(' · ')
 
   return (
-    <div className="card">
+    <div className={resolving ? 'card card--resolving' : 'card'} aria-busy={resolving}>
       <div className="card__body">
-        <Thumb kind={item.kind} url={item.thumbnailUrl} durationSeconds={item.durationSeconds} />
+        {resolving ? (
+          <div className="thumb thumb--skeleton shimmer" />
+        ) : (
+          <Thumb kind={item.kind} url={item.thumbnailUrl} durationSeconds={item.durationSeconds} />
+        )}
         <div className="card__main">
-          <div className="card__title" title={item.title}>
-            {item.title}
-          </div>
+          {resolving ? (
+            <div className="card__title card__title--skeleton shimmer" title={item.sourceUrl} />
+          ) : (
+            <div className="card__title" title={item.title}>
+              {item.title}
+            </div>
+          )}
           <CardMeta item={item} />
 
           {showProgress ? (
