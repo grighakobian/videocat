@@ -1,17 +1,11 @@
 import { useEffect, useState, type JSX } from 'react'
-import type { DefaultQuality, EngineStatus, Settings } from '@shared/types'
+import type { EngineStatus, Settings } from '@shared/types'
 import { Toggle } from '../components/Toggle'
 
 interface SettingsPageProps {
   settings: Settings
   engine: EngineStatus
 }
-
-const QUALITIES: { id: DefaultQuality; label: string }[] = [
-  { id: '720', label: '720p' },
-  { id: '1080', label: '1080p' },
-  { id: 'best', label: 'Best' }
-]
 
 const ACCENTS = ['#E8501F', '#7B61C9', '#1F8A5B', '#1D6FE0']
 
@@ -60,25 +54,6 @@ export function SettingsPage({ settings, engine }: SettingsPageProps): JSX.Eleme
             >
               Change…
             </button>
-          </div>
-
-          <div className="setting">
-            <div className="setting__text">
-              <div className="setting__name">Default quality</div>
-              <div className="setting__hint">Used when you skip the format picker</div>
-            </div>
-            <div className="segmented">
-              {QUALITIES.map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  aria-pressed={settings.defaultQuality === id}
-                  onClick={() => update({ defaultQuality: id })}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="setting">

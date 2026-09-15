@@ -33,11 +33,8 @@ const api = {
   getPlatform: (): Promise<{ platform: NodeJS.Platform; customTitlebar: boolean }> =>
     ipcRenderer.invoke(IPC.getPlatform),
 
-  addUrl: (
-    url: string,
-    autoStart: boolean
-  ): Promise<{ ok: true; id: string } | { ok: false; error: string }> =>
-    ipcRenderer.invoke(IPC.addUrl, url, autoStart),
+  addUrl: (url: string): Promise<{ ok: true; id: string } | { ok: false; error: string }> =>
+    ipcRenderer.invoke(IPC.addUrl, url),
   chooseFormat: (id: string, formatId: string, withSubtitles: boolean): Promise<void> =>
     ipcRenderer.invoke(IPC.chooseFormat, id, formatId, withSubtitles),
   setItemSubtitles: (id: string, value: boolean): Promise<void> =>

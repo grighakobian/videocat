@@ -31,8 +31,8 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
           </div>
           <div className="empty__title">Nothing downloading</div>
           <div className="empty__hint">
-            Paste a video link above and hit Download. VideoCat picks your default quality, or use
-            Choose quality to decide per video.
+            Paste a video link above and hit Download. VideoCat fetches the details and asks
+            which quality you want.
           </div>
         </div>
       </div>

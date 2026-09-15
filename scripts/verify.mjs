@@ -4,7 +4,7 @@
  *   node scripts/verify.mjs            # every suite
  *   node scripts/verify.mjs clipboard  # one suite
  *
- * Suites: input, autostart, codecs, queue, cancel, concurrency, clipboard.
+ * Suites: input, picker, codecs, queue, cancel, concurrency, clipboard.
  * These hit the network and run real downloads, so a full pass takes a few minutes.
  * State is reset first, so anything already in ~/Movies/VideoCat is left alone but the
  * settings/history store is cleared.
@@ -51,7 +51,7 @@ async function withApp(fn) {
   // on a cold start is 15-25s. Wait for that rather than guessing at a sleep. The button
   // is also disabled on an empty field, so seed it, wait, then clear.
   const seed = win.locator('.urlbar__field input')
-  const downloadButton = win.locator('.btn', { hasText: 'Download' })
+  const downloadButton = win.locator('.urlbar .btn', { hasText: 'Download' })
   let engineReady = false
   try {
     await seed.fill(VIDEO)
@@ -88,11 +88,11 @@ const helpers = (win) => ({
     await win.locator('.nav__item', { hasText: page }).click()
     await sleep(400)
   },
-  /** Adds VIDEO via "Choose quality" and starts it at the named format. */
+  /** Adds VIDEO and starts it at the named format, via the picker every add opens. */
   queueOne: async (format) => {
     await win.locator('.nav__item', { hasText: 'Downloads' }).click()
     await win.locator('.urlbar__field input').fill(VIDEO)
-    await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
+    await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     try {
       await win.locator('.picker').last().waitFor({ timeout: 180_000 })
     } catch {
@@ -139,7 +139,7 @@ const suites = {
   async input(win) {
     const h = helpers(win)
     await h.input.fill('this is not a link')
-    await win.locator('.btn', { hasText: 'Download' }).click()
+    await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     await sleep(800)
     const toast = await win.locator('.toast').textContent().catch(() => '')
     check('non-URL text is rejected', /does not look like a link/i.test(toast), JSON.stringify(toast))
@@ -148,25 +148,37 @@ const suites = {
 
     // A non-YouTube host must be accepted rather than refused up front.
     await h.input.fill('https://archive.org/details/BigBuckBunny_124')
-    await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
+    await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     const queued = await h.waitFor(async () => (await win.locator('.card').count()) > 0, 20)
     check('a non-YouTube URL is accepted', queued)
     check('no rejection toast for a non-YouTube URL',
       (await win.locator('.toast').count()) === 0)
   },
 
-  /** The primary Download button: no picker, starts at the default quality. */
-  async autostart(win) {
+  /**
+   * Quality is asked for every download: adding a link opens the picker and nothing
+   * starts until a rung is chosen, so no setting can silently pick a quality.
+   */
+  async picker(win) {
     const h = helpers(win)
     await h.input.fill(VIDEO)
-    await win.locator('.btn', { hasText: 'Download' }).click()
+    await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     await win.locator('.card').first().waitFor({ timeout: 30_000 })
-    check('primary Download skips the picker', (await win.locator('.picker').count()) === 0)
+    await win.locator('.picker').waitFor({ timeout: 180_000 })
+    check('adding a link opens the format picker', (await win.locator('.picker').count()) === 1)
 
-    const started = await h.waitFor(async () => (await win.locator('.progress__percent').count()) > 0, 200)
-    check('starts without the user picking a format', started)
+    // Long enough that an auto-started download would have reported progress by now.
+    await sleep(5000)
+    check('nothing downloads before a quality is picked',
+      (await win.locator('.progress__percent').count()) === 0)
+
+    await win.locator('.picker').locator('.option', { hasText: '1080p' }).first().click()
+    await win.locator('.picker').locator('.btn--sm', { hasText: 'Start' }).click()
+    const started = await h.waitFor(
+      async () => (await win.locator('.progress__percent').count()) > 0, 200)
+    check('starts once a quality is chosen', started)
     const chips = (await win.locator('.card__meta').first().textContent()) ?? ''
-    check('uses the 1080p default quality', /1080p/.test(chips), chips)
+    check('downloads the quality that was picked', /1080p/.test(chips), chips)
   },
 
   /**
@@ -177,7 +189,7 @@ const suites = {
   async codecs(win) {
     const h = helpers(win)
     await h.input.fill(VIDEO)
-    await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
+    await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     await win.locator('.picker').waitFor({ timeout: 180_000 })
 
     const optionText = async (label) =>

@@ -55,7 +55,7 @@ if (testUrl) {
     await sleep(1000)
   }
   await win.locator('.urlbar__field input').fill(testUrl)
-  await win.locator('.btn--ghost', { hasText: 'Choose quality' }).click()
+  await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
 
   await win.locator('.picker').waitFor({ timeout: 120_000 })
   console.log('CARD TITLE:', await win.locator('.card__title').first().textContent())
