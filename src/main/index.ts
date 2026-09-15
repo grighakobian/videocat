@@ -189,14 +189,14 @@ function registerIpc(): void {
     customTitlebar: USES_CUSTOM_TITLEBAR
   }))
 
-  ipcMain.handle(IPC.addUrl, (_event, url: string, autoStart: boolean) => {
+  ipcMain.handle(IPC.addUrl, (_event, url: string) => {
     const trimmed = String(url ?? '').trim()
     // No host check: yt-dlp decides what it can extract, and says so if it cannot.
     if (!isHttpUrl(trimmed)) {
       return { ok: false as const, error: 'That does not look like a link. Paste a video URL.' }
     }
     clipboardWatcher.ignore(trimmed)
-    const item = queue.add(trimmed, { autoStart })
+    const item = queue.add(trimmed)
     return { ok: true as const, id: item.id }
   })
 

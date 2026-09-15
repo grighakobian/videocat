@@ -99,11 +99,8 @@ export interface HistoryEntry {
   fileExists: boolean
 }
 
-export type DefaultQuality = '720' | '1080' | 'best'
-
 export interface Settings {
   downloadDirectory: string
-  defaultQuality: DefaultQuality
   maxConcurrentDownloads: number
   watchClipboard: boolean
   downloadSubtitles: boolean

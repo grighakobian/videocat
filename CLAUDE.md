@@ -23,7 +23,7 @@ npm run dev                    # electron-vite dev server + app
 npm run typecheck              # tsc for main+preload and renderer separately — the only gate
 npm run build                  # typecheck, then bundle to out/
 npm run verify                 # all behavioural suites (real downloads, several minutes)
-npm run verify queue           # one suite: input | autostart | codecs | queue | cancel | concurrency | clipboard
+npm run verify queue           # one suite: input | picker | codecs | queue | cancel | concurrency | clipboard
 node scripts/smoke.mjs shots   # screenshot all four screens
 npm run pack:mac               # .dmg  (pack:win, pack for both)
 ```

@@ -13,7 +13,7 @@ exploration from `VideoCat Downloader v2.dc.html`.
 | **Downloads** | Global paste bar (⌘V / Ctrl+V from anywhere), clipboard-detect banner, live queue with per-item progress, speed and ETA, pause/resume/cancel, an inline quality picker, and today's completed files. |
 | **Completed** | Download history grouped by day, with Play, Show in Finder/Explorer, and Remove. Entries whose file has since moved are dimmed. |
 | **Library** | Grid of everything still on disk, filterable by All / Video / Audio. Click to play, double-click to reveal. |
-| **Settings** | Save folder, default quality, simultaneous downloads, clipboard watching, subtitles, speed cap, notifications, and accent color. |
+| **Settings** | Save folder, simultaneous downloads, clipboard watching, subtitles, speed cap, notifications, and accent color. |
 
 ## Running it
 
@@ -158,10 +158,10 @@ Both scripts drive the actual app through Playwright rather than mocking it, bec
 every real bug in this codebase so far has been in the seam between the UI and yt-dlp,
 where a unit test would have been mocked into agreeing with itself.
 
-- **`scripts/verify.mjs`** — suites for `input`, `autostart`, `codecs`, `queue`,
-  `cancel`, `concurrency`, and `clipboard`: URL validation, the primary Download button
-  auto-starting at the default quality, H.264 where it exists and a warning where it
-  does not, Pause all / Resume all, pause keeping the
+- **`scripts/verify.mjs`** — suites for `input`, `picker`, `codecs`, `queue`,
+  `cancel`, `concurrency`, and `clipboard`: URL validation, every added link opening the
+  quality picker and nothing starting until a rung is chosen, H.264 where it exists and
+  a warning where it does not, Pause all / Resume all, pause keeping the
   `.part` file while cancel deletes it, the simultaneous-downloads limit (including
   raising it mid-flight), and clipboard watching with the ⌘V shortcut. It runs real
   downloads over the network, so a full pass takes several minutes and resets the

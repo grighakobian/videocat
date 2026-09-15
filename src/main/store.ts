@@ -17,7 +17,6 @@ interface Persisted {
 function defaultSettings(): Settings {
   return {
     downloadDirectory: join(app.getPath('videos'), 'VideoCat'),
-    defaultQuality: '1080',
     maxConcurrentDownloads: 5,
     watchClipboard: true,
     downloadSubtitles: false,
@@ -26,6 +25,19 @@ function defaultSettings(): Settings {
     notifyOnComplete: true,
     accentColor: '#E8501F'
   }
+}
+
+/**
+ * Merges saved settings over the defaults, dropping keys we no longer define, so a
+ * setting that a later version removes (the old `defaultQuality`) stops riding along
+ * in the file and in the snapshot the renderer sees.
+ */
+function mergeSettings(saved: Partial<Settings> | undefined): Settings {
+  const defaults = defaultSettings()
+  const known = Object.entries(saved ?? {}).filter(
+    ([key, value]) => key in defaults && value !== undefined
+  )
+  return { ...defaults, ...Object.fromEntries(known) } as Settings
 }
 
 /**
@@ -56,7 +68,7 @@ export class Store {
       return {
         version: 1,
         // Merge over defaults so settings added in a later version are populated.
-        settings: { ...fallback.settings, ...(parsed.settings ?? {}) },
+        settings: mergeSettings(parsed.settings),
         history: Array.isArray(parsed.history) ? parsed.history : [],
         lastEngineUpdateCheck: parsed.lastEngineUpdateCheck ?? 0,
         engineVersion: parsed.engineVersion ?? null,

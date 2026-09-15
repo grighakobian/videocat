@@ -4,8 +4,8 @@ import { LinkIcon } from './Icons'
 interface UrlBarProps {
   value: string
   onChange(value: string): void
-  /** `autoStart` true downloads at the default quality; false opens the format picker. */
-  onSubmit(autoStart: boolean): void
+  /** Adds the link to the queue; the card's format picker asks for the quality. */
+  onSubmit(): void
   disabled: boolean
 }
 
@@ -30,21 +30,18 @@ export const UrlBar = forwardRef<HTMLInputElement, UrlBarProps>(function UrlBar(
           placeholder="Paste a video link…"
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !empty && !disabled) onSubmit(!event.altKey)
+            if (event.key === 'Enter' && !empty && !disabled) onSubmit()
           }}
         />
         {empty ? <span className="kbd">{shortcutHint}</span> : null}
       </div>
       <button
         type="button"
-        className="btn btn--ghost"
+        className="btn"
         disabled={empty || disabled}
-        onClick={() => onSubmit(false)}
+        onClick={() => onSubmit()}
         title="Add to the queue and pick a quality"
       >
-        Choose quality
-      </button>
-      <button type="button" className="btn" disabled={empty || disabled} onClick={() => onSubmit(true)}>
         Download
       </button>
     </div>

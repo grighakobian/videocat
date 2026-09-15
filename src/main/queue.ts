@@ -89,11 +89,10 @@ export class DownloadQueue {
   }
 
   /**
-   * Adds a URL to the queue. With `autoStart` the item begins as soon as metadata
-   * resolves, using the default quality from settings; otherwise it waits on the
-   * format picker.
+   * Adds a URL to the queue. The item always waits on the format picker: quality is
+   * asked for every download, so nothing starts until `chooseFormat` arrives.
    */
-  add(url: string, options: { autoStart: boolean }): DownloadItem {
+  add(url: string): DownloadItem {
     const settings = this.store.getSettings()
     const id = randomUUID()
     const item: DownloadItem = {
@@ -124,11 +123,11 @@ export class DownloadQueue {
     }
     this.items.set(id, item)
     this.scheduleBroadcast(true)
-    void this.probe(id, url, options.autoStart)
+    void this.probe(id, url)
     return item
   }
 
-  private async probe(id: string, url: string, autoStart: boolean): Promise<void> {
+  private async probe(id: string, url: string): Promise<void> {
     try {
       const meta = await this.ytdlp.probe(url)
       if (!this.items.has(id)) return // canceled while probing
@@ -145,10 +144,6 @@ export class DownloadQueue {
         },
         true
       )
-      if (autoStart) {
-        const choice = this.defaultChoice(meta.formats)
-        if (choice) this.chooseFormat(id, choice.id, this.items.get(id)?.withSubtitles ?? false)
-      }
     } catch (error) {
       this.patch(
         id,
@@ -162,21 +157,6 @@ export class DownloadQueue {
       const item = this.items.get(id)
       if (item) this.events.onFailed(item)
     }
-  }
-
-  /** Maps the `defaultQuality` setting onto whatever this video actually offers. */
-  private defaultChoice(formats: FormatChoice[]): FormatChoice | undefined {
-    const { defaultQuality } = this.store.getSettings()
-    const videos = formats.filter((f) => f.kind === 'video')
-    if (videos.length === 0) return formats[0]
-    if (defaultQuality === 'best') return videos[0]
-    const target = defaultQuality === '720' ? 720 : 1080
-    return (
-      videos.find((f) => f.height === target) ??
-      // Fall back to the closest rung at or below the target, else the lowest we have.
-      videos.filter((f) => (f.height ?? 0) <= target).sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0] ??
-      videos[videos.length - 1]
-    )
   }
 
   /** Locks in a quality choice and moves the item into the runnable queue. */
@@ -374,7 +354,7 @@ export class DownloadQueue {
       this.pump()
     } else {
       this.patch(id, { status: 'awaiting-format', error: null, stage: 'Fetching video details' }, true)
-      void this.probe(id, item.sourceUrl, false)
+      void this.probe(id, item.sourceUrl)
     }
   }
 

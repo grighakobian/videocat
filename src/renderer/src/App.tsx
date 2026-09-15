@@ -44,14 +44,14 @@ export default function App(): JSX.Element {
   )
 
   const submit = useCallback(
-    async (candidate: string, autoStart: boolean) => {
+    async (candidate: string) => {
       const trimmed = candidate.trim()
       if (!trimmed) return
       if (engine.state === 'error') {
         showToast({ kind: 'error', message: engine.message ?? 'The download engine is unavailable.' })
         return
       }
-      const result = await window.videocat.addUrl(trimmed, autoStart)
+      const result = await window.videocat.addUrl(trimmed)
       if (!result.ok) {
         showToast({ kind: 'error', message: result.error })
         return
@@ -99,7 +99,7 @@ export default function App(): JSX.Element {
             ref={urlInputRef}
             value={url}
             onChange={setUrl}
-            onSubmit={(autoStart) => void submit(url, autoStart)}
+            onSubmit={() => void submit(url)}
             disabled={engineBusy}
           />
 
@@ -133,7 +133,7 @@ export default function App(): JSX.Element {
                   onClick={() => {
                     const hit = state.clipboardHit
                     state.dismissClipboardHit()
-                    if (hit) void submit(hit.url, true)
+                    if (hit) void submit(hit.url)
                   }}
                 >
                   download it?
