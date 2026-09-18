@@ -11,7 +11,14 @@ import {
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc'
-import type { AppSnapshot, ClipboardHit, DiskSpace, EngineStatus, Settings } from '@shared/types'
+import type {
+  AppSnapshot,
+  ClipboardHit,
+  DiskSpace,
+  EngineStatus,
+  Settings,
+  VideoMeta
+} from '@shared/types'
 import { BinaryManager } from './binaries'
 import { ClipboardWatcher, isHttpUrl } from './clipboardWatcher'
 import { readDiskSpace } from './disk'
@@ -33,14 +40,28 @@ const TITLEBAR_HEIGHT = 46
 /** True when we hid the OS frame, so the renderer should draw its own titlebar. */
 const USES_CUSTOM_TITLEBAR = process.platform === 'darwin' || process.platform === 'win32'
 
+/**
+ * How long a resolved clipboard link is worth reusing. Past that the picker would be
+ * quoting sizes from a probe the user has long forgotten, so add it afresh instead.
+ */
+const CLIPBOARD_OFFER_TTL_MS = 10 * 60_000
+
 let mainWindow: BrowserWindow | null = null
 let store: Store
 let binaries: BinaryManager
+let ytdlp: YtDlp
 let queue: DownloadQueue
 let clipboardWatcher: ClipboardWatcher
 let fileWatcher: HistoryFileWatcher
 let disk: DiskSpace | null = null
 let housekeepingTimer: NodeJS.Timeout | null = null
+/** Clipboard link waiting to be resolved: copied while a probe ran, or before the engine was ready. */
+let pendingClipboardUrl: string | null = null
+let resolvingClipboard = false
+/** The last clipboard link that resolved, kept so adding it does not re-probe the same URL. */
+let clipboardOffer: { url: string; meta: VideoMeta; at: number } | null = null
+/** The suggestion the banner is showing, mirrored into the snapshot like every other state. */
+let clipboardHit: ClipboardHit | null = null
 
 function send(channel: string, payload: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -143,7 +164,8 @@ function buildSnapshot(): AppSnapshot {
     // Re-stat here rather than trusting a startup pass; files move while the app runs.
     history: store.refreshFileExistence().history,
     disk,
-    engine: binaries.getStatus()
+    engine: binaries.getStatus(),
+    clipboardHit
   }
 }
 
@@ -176,6 +198,56 @@ function housekeeping(): void {
   syncFileWatcher()
 }
 
+/** A link appeared on the clipboard: queue it up to be resolved. */
+function considerClipboardLink(url: string): void {
+  pendingClipboardUrl = url
+  void resolveClipboardLink()
+}
+
+/**
+ * Probes a copied link and only mentions it once yt-dlp says it is media, so the banner
+ * can name what it found instead of asking about every URL that passes through the
+ * clipboard. A link that does not resolve is never mentioned at all, and is ignored so
+ * re-copying it costs no second probe — pasting it into the URL bar still surfaces the
+ * real error. The resolved metadata is kept so accepting the suggestion opens the
+ * picker without probing the same URL twice.
+ */
+async function resolveClipboardLink(): Promise<void> {
+  // One probe at a time; the tail of this function picks up anything copied meanwhile.
+  if (resolvingClipboard) return
+  const url = pendingClipboardUrl
+  if (!url) return
+  // Probing is a yt-dlp run. On a cold start the engine is still unpacking, so hold the
+  // link — the engine-ready callback comes back here rather than failing it now.
+  if (binaries.getStatus().state !== 'ready') return
+
+  resolvingClipboard = true
+  try {
+    const meta = await ytdlp.probe(url)
+    if (pendingClipboardUrl !== url) return // superseded by a newer copy
+    pendingClipboardUrl = null
+    clipboardOffer = { url, meta, at: Date.now() }
+    clipboardHit = { url, title: meta.title, durationSeconds: meta.durationSeconds }
+    send(IPC.onClipboardHit, clipboardHit)
+  } catch {
+    // Not media, or unreachable. Staying quiet is the point of resolving first.
+    if (pendingClipboardUrl === url) pendingClipboardUrl = null
+    clipboardWatcher.ignore(url)
+  } finally {
+    resolvingClipboard = false
+    if (pendingClipboardUrl) void resolveClipboardLink()
+  }
+}
+
+/** Metadata already probed for this exact URL, if it is recent enough to still be true. */
+function takeClipboardOffer(url: string): VideoMeta | undefined {
+  if (clipboardHit?.url === url) clipboardHit = null
+  if (!clipboardOffer || clipboardOffer.url !== url) return undefined
+  const { meta, at } = clipboardOffer
+  clipboardOffer = null
+  return Date.now() - at <= CLIPBOARD_OFFER_TTL_MS ? meta : undefined
+}
+
 function applyClipboardSetting(settings: Settings): void {
   if (settings.watchClipboard) clipboardWatcher.start()
   else clipboardWatcher.stop()
@@ -196,7 +268,7 @@ function registerIpc(): void {
       return { ok: false as const, error: 'That does not look like a link. Paste a video URL.' }
     }
     clipboardWatcher.ignore(trimmed)
-    const item = queue.add(trimmed)
+    const item = queue.add(trimmed, takeClipboardOffer(trimmed))
     return { ok: true as const, id: item.id }
   })
 
@@ -266,7 +338,11 @@ function registerIpc(): void {
     return isHttpUrl(text) ? text : null
   })
 
-  ipcMain.handle(IPC.dismissClipboardHit, (_event, url: string) => clipboardWatcher.ignore(url))
+  ipcMain.handle(IPC.dismissClipboardHit, (_event, url: string) => {
+    if (clipboardHit?.url === url) clipboardHit = null
+    // The probed metadata stays: pasting the link later should still skip the probe.
+    clipboardWatcher.ignore(url)
+  })
 
   ipcMain.handle(IPC.updateEngine, () => binaries.updateEngine())
 
@@ -276,14 +352,18 @@ function registerIpc(): void {
 }
 
 function bootstrap(): void {
-  binaries = new BinaryManager((status: EngineStatus) => send(IPC.onEngine, status), {
+  binaries = new BinaryManager((status: EngineStatus) => {
+    send(IPC.onEngine, status)
+    // A link copied before the engine finished provisioning is still waiting to be probed.
+    if (status.state === 'ready') void resolveClipboardLink()
+  }, {
     get: () => store.getLastEngineUpdateCheck(),
     set: (timestamp) => store.setLastEngineUpdateCheck(timestamp)
   }, {
     get: (mtimeMs) => store.getCachedEngineVersion(mtimeMs),
     set: (version, mtimeMs) => store.setCachedEngineVersion(version, mtimeMs)
   })
-  const ytdlp = new YtDlp(binaries)
+  ytdlp = new YtDlp(binaries)
 
   queue = new DownloadQueue(ytdlp, store, {
     onChange: () => send(IPC.onQueue, queue.list()),
@@ -302,7 +382,7 @@ function bootstrap(): void {
     onFailed: (item) => send(IPC.onToast, { kind: 'error', message: item.error ?? 'Download failed.' })
   })
 
-  clipboardWatcher = new ClipboardWatcher((hit: ClipboardHit) => send(IPC.onClipboardHit, hit))
+  clipboardWatcher = new ClipboardWatcher(considerClipboardLink)
   fileWatcher = new HistoryFileWatcher(refreshHistoryFiles)
 }
 

@@ -77,6 +77,13 @@ code or vice versa, and neither can reach the other's globals.
   cached *in the store*, because a freshly unpacked build's first launch still costs ~13s and
   the URL bar stays disabled until `--version` answers. Unpacking uses the OS's own `tar`
   (bsdtar reads zip on macOS and Windows) so nothing is added to the bundle.
+- `clipboardWatcher.ts` + `resolveClipboardLink()` in `index.ts` — the watcher is a dumb
+  poller that emits *candidate* URLs; `index.ts` probes one and only pushes
+  `onClipboardHit` when yt-dlp resolves it to media, so a copied non-media link stays
+  silent. Two things to keep: the probe waits for `engine.state === 'ready'` (a link
+  copied before yt-dlp finished provisioning is resolved from the engine-ready callback,
+  not failed), and the resolved `VideoMeta` is handed to `queue.add()` so accepting the
+  banner opens the picker without probing the same URL twice.
 - `fileWatcher.ts` — `fs.watch` on the folders that hold finished files, filtered to the
   history entries' own names (yt-dlp's `.part` churn in the same folder is ignored). It
   never recurses; every path is known. The 30s housekeeping tick in `index.ts` re-stats
@@ -92,7 +99,8 @@ code or vice versa, and neither can reach the other's globals.
 Plain React 19, no state library, no CSS framework: one hand-written `styles.css` with CSS
 custom properties (`--accent` is set at runtime from settings) and BEM-ish class names.
 **Those class names are the test selectors** — `scripts/verify.mjs` and `scripts/smoke.mjs`
-locate `.urlbar__field input`, `.card`, `.toast`, `.banner`, `.nav__item`, `.picker`,
+locate `.urlbar__field input`, `.card`, `.card__download` (opens a card's quality
+picker, which is closed until asked for), `.toast`, `.banner`, `.nav__item`, `.picker`,
 `.progress__stats`, `.setting`. Renaming a class silently breaks the suites.
 
 Windows/macOS hide the OS frame and the renderer draws its own titlebar (`TITLEBAR_HEIGHT` in

@@ -57,7 +57,13 @@ if (testUrl) {
   await win.locator('.urlbar__field input').fill(testUrl)
   await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
 
-  await win.locator('.picker').waitFor({ timeout: 120_000 })
+  // The card resolves to a preview first; the quality list opens from it.
+  await win.locator('.card__download').waitFor({ timeout: 120_000 })
+  console.log('PREVIEW:', await win.locator('.card__status').first().textContent())
+  await shot('05a-card-preview')
+  await win.locator('.card__download').click()
+
+  await win.locator('.picker').waitFor({ timeout: 30_000 })
   console.log('CARD TITLE:', await win.locator('.card__title').first().textContent())
   console.log('FORMATS:', (await win.locator('.option').allTextContents()).join(' | '))
   await shot('05-format-picker')

@@ -57,6 +57,7 @@ export function useVideoCat(): VideoCatState {
       setHistory(snapshot.history)
       setDisk(snapshot.disk)
       setEngine(snapshot.engine)
+      setClipboardHit(snapshot.clipboardHit)
       setReady(true)
     })
 

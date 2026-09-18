@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { rmSync, statSync } from 'node:fs'
 import { basename, extname } from 'node:path'
-import type { DownloadItem, FormatChoice, HistoryEntry, Settings } from '@shared/types'
+import type { DownloadItem, FormatChoice, HistoryEntry, Settings, VideoMeta } from '@shared/types'
 import type { Store } from './store'
 import { YtDlp } from './ytdlp'
 
@@ -91,27 +91,31 @@ export class DownloadQueue {
   /**
    * Adds a URL to the queue. The item always waits on the format picker: quality is
    * asked for every download, so nothing starts until `chooseFormat` arrives.
+   *
+   * `resolved` is metadata someone already probed — the clipboard suggestion resolves a
+   * link before offering it — which lets the picker open at once instead of paying for a
+   * second probe of the same URL.
    */
-  add(url: string): DownloadItem {
+  add(url: string, resolved?: VideoMeta): DownloadItem {
     const settings = this.store.getSettings()
     const id = randomUUID()
     const item: DownloadItem = {
       id,
-      sourceUrl: url,
-      title: url,
-      uploader: null,
-      thumbnailUrl: null,
-      durationSeconds: null,
+      sourceUrl: resolved?.sourceUrl ?? url,
+      title: resolved?.title ?? url,
+      uploader: resolved?.uploader ?? null,
+      thumbnailUrl: resolved?.thumbnailUrl ?? null,
+      durationSeconds: resolved?.durationSeconds ?? null,
       status: 'awaiting-format',
       kind: 'video',
       formatId: null,
       formatLabel: null,
       containerLabel: null,
       qualityLabel: null,
-      formats: [],
+      formats: resolved?.formats ?? [],
       withSubtitles: settings.downloadSubtitles,
       progress: 0,
-      stage: 'Fetching video details',
+      stage: resolved ? null : 'Fetching video details',
       speedBytesPerSecond: null,
       etaSeconds: null,
       totalBytes: null,
@@ -123,7 +127,7 @@ export class DownloadQueue {
     }
     this.items.set(id, item)
     this.scheduleBroadcast(true)
-    void this.probe(id, url)
+    if (!resolved) void this.probe(id, url)
     return item
   }
 

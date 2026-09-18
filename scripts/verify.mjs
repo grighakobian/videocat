@@ -72,8 +72,10 @@ async function withApp(fn) {
   try {
     await fn(win)
   } catch (error) {
-    // One suite failing should not hide the results of the ones after it.
-    check(`suite completed`, false, error.message.split('\n')[0])
+    // One suite failing should not hide the results of the ones after it. Keep the
+    // first few lines: Playwright names the locator it gave up on below the first one,
+    // which is the difference between a useful failure and "click timed out".
+    check(`suite completed`, false, error.message.split('\n').slice(0, 3).join(' | ').trim())
   } finally {
     await app.close()
   }
@@ -88,23 +90,25 @@ const helpers = (win) => ({
     await win.locator('.nav__item', { hasText: page }).click()
     await sleep(400)
   },
-  /** Adds VIDEO and starts it at the named format, via the picker every add opens. */
+  /** Adds VIDEO and starts it at the named format: preview, open the picker, pick, start. */
   queueOne: async (format) => {
     await win.locator('.nav__item', { hasText: 'Downloads' }).click()
     await win.locator('.urlbar__field input').fill(VIDEO)
     await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     try {
-      await win.locator('.picker').last().waitFor({ timeout: 180_000 })
+      await win.locator('.card__download').last().waitFor({ timeout: 180_000 })
     } catch {
       // Usually the probe failed. Surface what the app said rather than a bare timeout —
       // a long run makes many requests and YouTube does throttle them.
       const reported = await win.locator('.card__error').allTextContents()
       throw new Error(
         reported.length
-          ? `format picker never appeared; app reported: ${reported[0]}`
-          : 'format picker never appeared and no error was shown (slow or throttled probe?)'
+          ? `the card never resolved; app reported: ${reported[0]}`
+          : 'the card never resolved and no error was shown (slow or throttled probe?)'
       )
     }
+    await win.locator('.card__download').last().click()
+    await win.locator('.picker').last().waitFor({ timeout: 30_000 })
     await win.locator('.picker').last().locator('.option', { hasText: format }).first().click()
     await win.locator('.picker').last().locator('.btn--sm', { hasText: 'Start' }).click()
     await sleep(500)
@@ -156,16 +160,29 @@ const suites = {
   },
 
   /**
-   * Quality is asked for every download: adding a link opens the picker and nothing
-   * starts until a rung is chosen, so no setting can silently pick a quality.
+   * Quality is asked for every download, and only when the user asks for it: an added
+   * link resolves to a preview, the rungs and their sizes arrive with the picker, and
+   * nothing starts until one is chosen.
    */
   async picker(win) {
     const h = helpers(win)
     await h.input.fill(VIDEO)
     await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
-    await win.locator('.card').first().waitFor({ timeout: 30_000 })
-    await win.locator('.picker').waitFor({ timeout: 180_000 })
-    check('adding a link opens the format picker', (await win.locator('.picker').count()) === 1)
+    await win.locator('.card__download').waitFor({ timeout: 180_000 })
+
+    const title = (await win.locator('.card__title').first().textContent()) ?? ''
+    check('the card previews the video', /Big Buck Bunny/i.test(title), title)
+    const preview = (await win.locator('.card__status').first().textContent()) ?? ''
+    check('the preview line carries the duration', /\d+:\d\d/.test(preview), preview)
+    check('no formats or sizes until they are asked for',
+      (await win.locator('.option').count()) === 0)
+    check('no picker until it is asked for', (await win.locator('.picker').count()) === 0)
+
+    await win.locator('.card__download').click()
+    await win.locator('.picker').waitFor({ timeout: 30_000 })
+    const options = await win.locator('.option').allTextContents()
+    check('the picker lists rungs with sizes',
+      options.length > 1 && /MB|GB/.test(options.join(' ')), options.join(' | '))
 
     // Long enough that an auto-started download would have reported progress by now.
     await sleep(5000)
@@ -190,7 +207,8 @@ const suites = {
     const h = helpers(win)
     await h.input.fill(VIDEO)
     await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
-    await win.locator('.picker').waitFor({ timeout: 180_000 })
+    await win.locator('.card__download').click({ timeout: 180_000 })
+    await win.locator('.picker').waitFor({ timeout: 30_000 })
 
     const optionText = async (label) =>
       (await win.locator('.option', { hasText: label }).first().textContent()) ?? ''
@@ -290,7 +308,10 @@ const suites = {
     check('raising the limit releases the waiting item', released)
   },
 
-  /** Clipboard watching, the ⌘V shortcut, and the off switch. */
+  /**
+   * Clipboard watching, the ⌘V shortcut, and the off switch. A copied link is probed
+   * before it is mentioned, so the waits here cover a real yt-dlp run, not just a poll.
+   */
   async clipboard(win) {
     const h = helpers(win)
     const copy = (text) => {
@@ -301,7 +322,10 @@ const suites = {
 
     copy(VIDEO)
     check('detects a copied link',
-      await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 10))
+      await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 60))
+    // The point of resolving first: the banner names the video rather than the URL.
+    const offer = (await h.clipboardBanner().locator('.banner__text').textContent()) ?? ''
+    check('names the resolved video', /Big Buck Bunny/i.test(offer), offer)
 
     await h.clipboardBanner().locator('.banner__close').click()
     await sleep(400)
@@ -314,9 +338,15 @@ const suites = {
     // Any host is fair game now, not only YouTube.
     copy('https://archive.org/details/BigBuckBunny_124')
     check('offers a non-YouTube link too',
-      await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 10))
+      await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 60))
     await h.clipboardBanner().locator('.banner__close').click()
     await sleep(400)
+
+    // A URL that holds no media must stay silent rather than offering a download that
+    // could only fail. Long enough for the probe behind it to have finished and failed.
+    copy('https://example.com/')
+    await sleep(30_000)
+    check('says nothing about a link that is not media', (await h.clipboardBanner().count()) === 0)
 
     // Re-copying a dismissed link should stay quiet.
     copy('some other plain text')
@@ -342,7 +372,11 @@ const suites = {
     check('⌘V pastes into the focused URL field', (await h.input.inputValue()).includes('youtu.be'))
 
     await h.input.fill('')
-    await win.locator('.banner__close').first().click().catch(() => {})
+    // That youtu.be copy is still being probed; let its banner land and dismiss it, so
+    // the off-switch check below cannot trip over a suggestion from the previous link.
+    await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 60)
+    await h.clipboardBanner().locator('.banner__close').click().catch(() => {})
+    await sleep(400)
     await h.go('Settings')
     await h.setting('Watch clipboard').locator('.toggle').click()
     await sleep(500)

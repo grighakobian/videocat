@@ -10,7 +10,7 @@ exploration from `VideoCat Downloader v2.dc.html`.
 
 | | |
 |---|---|
-| **Downloads** | Global paste bar (⌘V / Ctrl+V from anywhere), clipboard-detect banner, live queue with per-item progress, speed and ETA, pause/resume/cancel, an inline quality picker, and today's completed files. |
+| **Downloads** | Global paste bar (⌘V / Ctrl+V from anywhere), a clipboard banner that names the video it found, live queue with per-item progress, speed and ETA, pause/resume/cancel, cards that preview a link before its quality picker is opened, and today's completed files. |
 | **Completed** | Download history grouped by day, with Play, Show in Finder/Explorer, and Remove. Entries whose file has since moved are dimmed. |
 | **Library** | Grid of everything still on disk, filterable by All / Video / Audio. Click to play, double-click to reveal. |
 | **Settings** | Save folder, simultaneous downloads, clipboard watching, subtitles, speed cap, notifications, and accent color. |
@@ -82,7 +82,7 @@ src/
     ytdlp.ts            metadata probes, format list, download jobs
     queue.ts            ordering, concurrency, per-item lifecycle
     store.ts            settings + history, atomically persisted JSON
-    clipboardWatcher.ts polls for copied video links
+    clipboardWatcher.ts polls for copied links (index.ts resolves one before offering it)
     fileWatcher.ts      watches finished files so history shows moved/deleted ones
     disk.ts             free/total space for the sidebar
   preload/     index.ts                — the only surface the renderer can reach
@@ -159,13 +159,15 @@ every real bug in this codebase so far has been in the seam between the UI and y
 where a unit test would have been mocked into agreeing with itself.
 
 - **`scripts/verify.mjs`** — suites for `input`, `picker`, `codecs`, `queue`,
-  `cancel`, `concurrency`, and `clipboard`: URL validation, every added link opening the
-  quality picker and nothing starting until a rung is chosen, H.264 where it exists and
-  a warning where it does not, Pause all / Resume all, pause keeping the
+  `cancel`, `concurrency`, and `clipboard`: URL validation, an added link previewing
+  itself with no formats until the picker is opened and nothing starting until a rung is
+  chosen, H.264 where it exists and a warning where it does not, Pause all / Resume all,
+  pause keeping the
   `.part` file while cancel deletes it, the simultaneous-downloads limit (including
-  raising it mid-flight), and clipboard watching with the ⌘V shortcut. It runs real
-  downloads over the network, so a full pass takes several minutes and resets the
-  settings/history store first. Back-to-back suites make a lot of requests to the same
+  raising it mid-flight), and clipboard watching — a copied link resolved and named in
+  the banner, a copied non-media URL passed over in silence — plus the ⌘V shortcut. It
+  runs real downloads over the network, so a full pass takes several minutes and resets
+  the settings/history store first. Back-to-back suites make a lot of requests to the same
   video and YouTube will occasionally throttle them; a suite that fails this way says
   so and the remaining suites still run. Re-run the single suite to confirm
   (`npm run verify queue`).
@@ -178,9 +180,12 @@ Set `VIDEOCAT_DEBUG=1` to echo every raw yt-dlp line to the terminal.
 
 Whatever yt-dlp can extract — well over a thousand sites. The URL field does not check
 the host, only that the input is an http(s) URL; anything yt-dlp cannot handle comes
-back as a normal download error. The clipboard watcher offers any copied link for the
-same reason, so it is more talkative than a host allowlist would be; the banner is
-dismissible, dismissed links are not offered again, and Settings can turn it off.
+back as a normal download error. The clipboard watcher hands every copied http(s) link
+to yt-dlp for the same reason — the host alone cannot predict what it can extract — and
+only mentions the ones that resolve, so copying a docs link puts nothing on screen. The
+cost of that is a background probe per copied link while watching is on; the banner is
+dismissible, dismissed and unresolvable links are not offered again, and Settings can
+turn the whole thing off.
 
 Quality and codec handling is tuned against YouTube, which is the best-covered source.
 Other sites publish different format sets, so the picker shows whatever they actually

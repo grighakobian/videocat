@@ -123,9 +123,15 @@ export interface EngineStatus {
   progress: number | null
 }
 
+/**
+ * A link found on the clipboard that yt-dlp has already resolved to real media. Only
+ * resolved links are offered, so the banner can name what it found rather than asking
+ * about any URL that happened to be copied.
+ */
 export interface ClipboardHit {
   url: string
-  title: string | null
+  title: string
+  durationSeconds: number | null
 }
 
 export interface AppSnapshot {
@@ -134,4 +140,6 @@ export interface AppSnapshot {
   history: HistoryEntry[]
   disk: DiskSpace | null
   engine: EngineStatus
+  /** A clipboard suggestion still standing, so a renderer that mounts late still sees it. */
+  clipboardHit: ClipboardHit | null
 }

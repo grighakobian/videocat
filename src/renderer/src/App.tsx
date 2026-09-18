@@ -8,6 +8,7 @@ import { DownloadsPage } from './pages/Downloads'
 import { LibraryPage } from './pages/Library'
 import { SettingsPage } from './pages/Settings'
 import { CloseIcon } from './components/Icons'
+import { formatDuration } from './lib/format'
 
 const PAGE_TITLES: Record<PageId, string> = {
   downloads: 'Downloads',
@@ -84,6 +85,7 @@ export default function App(): JSX.Element {
   }, [showToast])
 
   const engineBusy = engine.state === 'checking' || engine.state === 'downloading'
+  const clipboardDuration = formatDuration(state.clipboardHit?.durationSeconds ?? null)
 
   return (
     <div className="app">
@@ -128,7 +130,8 @@ export default function App(): JSX.Element {
           {page === 'downloads' && state.clipboardHit ? (
             <div className="banner">
               <div className="banner__text">
-                Link detected in clipboard —{' '}
+                Found on your clipboard: <strong>{state.clipboardHit.title}</strong>
+                {clipboardDuration ? ` · ${clipboardDuration}` : ''} —{' '}
                 <a
                   onClick={() => {
                     const hit = state.clipboardHit

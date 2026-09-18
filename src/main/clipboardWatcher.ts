@@ -1,5 +1,4 @@
 import { clipboard } from 'electron'
-import type { ClipboardHit } from '@shared/types'
 
 const POLL_INTERVAL_MS = 1200
 
@@ -24,9 +23,11 @@ export function isHttpUrl(text: string): boolean {
  * Polls the clipboard for links. Electron has no clipboard-change event, so a short
  * interval is the only option; it only reads text and never writes.
  *
- * Any http(s) URL is offered, since yt-dlp's reach is far too wide to predict from the
- * host alone. The banner is dismissible, dismissed links are never offered again, and
- * the whole watcher can be turned off in Settings.
+ * Every http(s) URL is handed on as a *candidate*, since yt-dlp's reach is far too wide
+ * to predict from the host alone. Whether one is worth mentioning is decided by probing
+ * it (see `resolveClipboardLink` in `index.ts`) — this class stays a dumb poller. The
+ * banner is dismissible, dismissed links are never offered again, and the whole watcher
+ * can be turned off in Settings.
  */
 export class ClipboardWatcher {
   private timer: NodeJS.Timeout | null = null
@@ -35,14 +36,14 @@ export class ClipboardWatcher {
   /** URLs the user already dismissed or downloaded, so we do not nag about them again. */
   private ignored = new Set<string>()
 
-  constructor(private readonly onHit: (hit: ClipboardHit) => void) {}
+  constructor(private readonly onCandidate: (url: string) => void) {}
 
   start(): void {
     if (this.timer) return
-    // Seed with whatever is on the clipboard now so launching does not fire immediately.
-    void clipboard.readText().then((text) => {
-      this.lastSeen = text.trim()
-    })
+    // Check what is already on the clipboard rather than swallowing it: a link copied
+    // just before launching (or before switching watching back on) is the likeliest
+    // thing the user wants, and resolving it first means a non-media link stays silent.
+    void this.poll()
     this.timer = setInterval(() => void this.poll(), POLL_INTERVAL_MS)
   }
 
@@ -66,7 +67,7 @@ export class ClipboardWatcher {
       if (!text || text === this.lastSeen) return
       this.lastSeen = text
       if (!isHttpUrl(text) || this.ignored.has(text)) return
-      this.onHit({ url: text, title: null })
+      this.onCandidate(text)
     } catch {
       // A transient clipboard read failure just means we try again next tick.
     } finally {

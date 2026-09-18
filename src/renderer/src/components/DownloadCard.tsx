@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react'
 import type { DownloadItem } from '@shared/types'
-import { formatBytes, formatEta, formatSpeed } from '../lib/format'
+import { formatBytes, formatDuration, formatEta, formatSpeed } from '../lib/format'
 import { CloseIcon, PauseIcon, PlayIcon, RetryIcon } from './Icons'
 import { Thumb } from './Thumb'
 
@@ -11,7 +11,14 @@ interface DownloadCardProps {
 /** Secondary line under the title: quality chips plus size/duration, or a status message. */
 function CardMeta({ item }: DownloadCardProps): JSX.Element {
   if (item.status === 'awaiting-format') {
-    return <div className="card__status">{item.stage ?? 'Waiting · pick a format to start'}</div>
+    // Before a quality is chosen there is nothing to chip: what identifies the link is
+    // the preview — who published it and how long it is. Formats and sizes come with
+    // the picker, which is a click away.
+    if (item.stage) return <div className="card__status">{item.stage}</div>
+    const preview = [item.uploader, formatDuration(item.durationSeconds)]
+      .filter(Boolean)
+      .join(' · ')
+    return <div className="card__status">{preview || 'Ready · choose a quality to start'}</div>
   }
   const size = item.totalBytes !== null ? formatBytes(item.totalBytes) : null
   return (
@@ -105,10 +112,17 @@ function FormatPicker({ item }: DownloadCardProps): JSX.Element {
 }
 
 export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
+  // Opening the quality list is per-card view state, not app state: five rungs with
+  // sizes under every waiting card is noise, and the preview above is what tells the
+  // user whether this is the video they meant. Cards are keyed by id, so this survives
+  // the progress pushes that re-render the list.
+  const [choosing, setChoosing] = useState(false)
+
   // Metadata is still being fetched: the item has no formats yet and its title is the
   // raw URL, which reads as a glitch rather than a title, so show a skeleton instead.
   const resolving = item.status === 'awaiting-format' && item.formats.length === 0
-  const showPicker = item.status === 'awaiting-format' && item.formats.length > 0
+  const resolved = item.status === 'awaiting-format' && item.formats.length > 0
+  const showPicker = resolved && choosing
   const isRunning = item.status === 'downloading'
   const showProgress =
     item.status === 'downloading' || item.status === 'paused' || item.status === 'queued'
@@ -161,6 +175,15 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
         </div>
 
         <div className="card__actions">
+          {resolved && !choosing ? (
+            <button
+              type="button"
+              className="btn btn--sm card__download"
+              onClick={() => setChoosing(true)}
+            >
+              Download
+            </button>
+          ) : null}
           {item.status === 'downloading' || item.status === 'queued' ? (
             <button
               type="button"
