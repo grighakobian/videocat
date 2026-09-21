@@ -73,17 +73,16 @@ function send(channel: string, payload: unknown): void {
 }
 
 /**
- * Strips the File / Edit / View / Window menus from the bar.
+ * Keeps the two menus macOS expects — the application menu and Edit — and drops the
+ * rest: File, View and Window carry nothing this app can do. Everywhere else the menu
+ * bar goes entirely.
  *
- * macOS always shows an application menu, so that one stays — it carries About, Hide
- * and Quit, and cannot be removed. Everywhere else the menu bar goes entirely.
- *
- * The editing items are folded into that app menu rather than dropped. On macOS a
- * shortcut only fires if some menu item declares it, so removing the Edit menu takes
- * ⌘C/⌘V/⌘X/⌘A with it — and pasting a link into the URL bar is the whole app. Keeping
- * them here leaves the menu bar with a single title while the shortcuts still work.
- * (`visible: false` plus `acceleratorWorksWhenHidden` would hide them and is documented
- * to keep the accelerators, but this way there is nothing to take on trust.)
+ * Edit has to exist at all because on macOS a shortcut only fires if some menu item
+ * declares it: remove Edit and ⌘C/⌘V/⌘X/⌘A go with it, and pasting a link into the URL
+ * bar is the whole app. These items were folded into the application menu to keep the
+ * bar to a single title, which kept the shortcuts but left Cut and Paste in the one
+ * menu nobody looks for them in. `role: 'editMenu'` is the arrangement macOS defines,
+ * and it brings Paste and Match Style, Speech and Emoji along with it.
  */
 function applyMenu(): void {
   if (process.platform !== 'darwin') {
@@ -98,14 +97,6 @@ function applyMenu(): void {
         submenu: [
           { role: 'about' },
           { type: 'separator' },
-          { role: 'undo' },
-          { role: 'redo' },
-          { type: 'separator' },
-          { role: 'cut' },
-          { role: 'copy' },
-          { role: 'paste' },
-          { role: 'selectAll' },
-          { type: 'separator' },
           { role: 'services' },
           { type: 'separator' },
           { role: 'hide' },
@@ -114,7 +105,8 @@ function applyMenu(): void {
           { type: 'separator' },
           { role: 'quit' }
         ]
-      }
+      },
+      { role: 'editMenu' }
     ])
   )
 }
