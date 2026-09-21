@@ -15,6 +15,10 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('src/renderer'),
+    // Off Vite's default 5173, which the marketing site (videocat-web) uses. Whichever
+    // server started first used to win that port, so the other one silently drifted and
+    // a browser tab could load this renderer thinking it was the website.
+    server: { port: 5273, strictPort: true },
     build: { rollupOptions: { input: { index: resolve('src/renderer/index.html') } } },
     resolve: { alias: { '@shared': resolve('src/shared'), '@': resolve('src/renderer/src') } },
     plugins: [react()]

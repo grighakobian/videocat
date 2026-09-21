@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import type { PageId } from '@shared/types'
+import { ClipboardSuggestion } from './components/ClipboardSuggestion'
 import { Sidebar } from './components/Sidebar'
 import { UrlBar } from './components/UrlBar'
 import { useVideoCat } from './lib/useVideoCat'
-import { CompletedPage } from './pages/Completed'
 import { DownloadsPage } from './pages/Downloads'
 import { LibraryPage } from './pages/Library'
 import { SettingsPage } from './pages/Settings'
 import { CloseIcon } from './components/Icons'
-import { formatDuration } from './lib/format'
 
 const PAGE_TITLES: Record<PageId, string> = {
   downloads: 'Downloads',
-  completed: 'Completed',
   library: 'Library',
   settings: 'Settings'
 }
@@ -63,6 +61,28 @@ export default function App(): JSX.Element {
     [engine.state, engine.message, showToast]
   )
 
+  /**
+   * The offer was accepted. The link was probed before it was offered, so adding it
+   * reuses that probe (the main process hands the metadata to the queue) and the item
+   * appears with its formats already in place — which is why the chosen quality can be
+   * applied straight away instead of waiting for a card to resolve.
+   */
+  const acceptClipboardHit = useCallback(
+    async (formatId: string | null, withSubtitles: boolean) => {
+      const hit = state.clipboardHit
+      if (!hit) return
+      state.dismissClipboardHit()
+      const result = await window.videocat.addUrl(hit.url)
+      if (!result.ok) {
+        showToast({ kind: 'error', message: result.error })
+        return
+      }
+      if (formatId) void window.videocat.chooseFormat(result.id, formatId, withSubtitles)
+      setPage('downloads')
+    },
+    [state.clipboardHit, state.dismissClipboardHit, showToast]
+  )
+
   // ⌘V / Ctrl+V anywhere outside a text field pastes a link straight into the bar.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -85,7 +105,6 @@ export default function App(): JSX.Element {
   }, [showToast])
 
   const engineBusy = engine.state === 'checking' || engine.state === 'downloading'
-  const clipboardDuration = formatDuration(state.clipboardHit?.durationSeconds ?? null)
 
   return (
     <div className="app">
@@ -128,35 +147,19 @@ export default function App(): JSX.Element {
           ) : null}
 
           {page === 'downloads' && state.clipboardHit ? (
-            <div className="banner">
-              <div className="banner__text">
-                Found on your clipboard: <strong>{state.clipboardHit.title}</strong>
-                {clipboardDuration ? ` · ${clipboardDuration}` : ''} —{' '}
-                <a
-                  onClick={() => {
-                    const hit = state.clipboardHit
-                    state.dismissClipboardHit()
-                    if (hit) void submit(hit.url)
-                  }}
-                >
-                  download it?
-                </a>
-              </div>
-              <button
-                type="button"
-                className="banner__close"
-                aria-label="Dismiss"
-                onClick={state.dismissClipboardHit}
-              >
-                <CloseIcon size={13} />
-              </button>
-            </div>
+            <ClipboardSuggestion
+              // A new link is a new offer: remount so no selection carries over.
+              key={state.clipboardHit.url}
+              hit={state.clipboardHit}
+              withSubtitles={settings?.downloadSubtitles ?? false}
+              onAccept={acceptClipboardHit}
+              onDismiss={state.dismissClipboardHit}
+            />
           ) : null}
 
           {page === 'downloads' ? (
             <DownloadsPage queue={state.queue} history={state.history} />
           ) : null}
-          {page === 'completed' ? <CompletedPage history={state.history} /> : null}
           {page === 'library' ? <LibraryPage history={state.history} /> : null}
           {page === 'settings' && settings ? (
             <SettingsPage settings={settings} engine={engine} />

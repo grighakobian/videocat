@@ -1,13 +1,16 @@
 import { useMemo, type JSX } from 'react'
 import type { DownloadItem, HistoryEntry } from '@shared/types'
 import { DownloadCard } from '../components/DownloadCard'
-import { AlertCircleIcon, CheckCircleIcon, DownloadIcon } from '../components/Icons'
-import { formatBytes, formatSpeed, isSameDay } from '../lib/format'
+import { AlertCircleIcon, DownloadIcon } from '../components/Icons'
+import { Thumb } from '../components/Thumb'
+import { formatBytes, formatSpeed, formatTimeOfDay, groupByDay, pluralize } from '../lib/format'
 
 interface DownloadsPageProps {
   queue: DownloadItem[]
   history: HistoryEntry[]
 }
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Element {
   const active = queue.filter((item) => item.status === 'downloading')
@@ -17,12 +20,18 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
   )
   const anythingPaused = queue.some((item) => item.status === 'paused')
 
-  const completedToday = useMemo(
-    () => history.filter((entry) => isSameDay(entry.completedAt, Date.now())).slice(0, 6),
+  // A completed item is deleted from the queue and becomes history, so what finished
+  // sits below what is still running: the whole life of a download on one screen.
+  const groups = useMemo(() => groupByDay(history), [history])
+  const weekBytes = useMemo(
+    () =>
+      history
+        .filter((entry) => Date.now() - entry.completedAt < WEEK_MS)
+        .reduce((sum, entry) => sum + entry.sizeBytes, 0),
     [history]
   )
 
-  if (queue.length === 0 && completedToday.length === 0) {
+  if (queue.length === 0 && history.length === 0) {
     return (
       <div className="page">
         <div className="empty">
@@ -32,7 +41,7 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
           <div className="empty__title">Nothing downloading</div>
           <div className="empty__hint">
             Paste a video link above and hit Download. VideoCat fetches the details and asks
-            which quality you want.
+            which quality you want. Finished files stay here, grouped by day.
           </div>
         </div>
       </div>
@@ -77,10 +86,13 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
         </>
       ) : null}
 
-      {completedToday.length > 0 ? (
+      {history.length > 0 ? (
         <>
           <div className="page-head" style={{ marginTop: queue.length > 0 ? 8 : 0 }}>
-            <div className="page-head__title">Completed today</div>
+            <div className="page-head__title">Completed</div>
+            <div className="page-head__meta">
+              {pluralize(history.length, 'file')} · {formatBytes(weekBytes)} this week
+            </div>
             <div className="page-head__end">
               <button
                 type="button"
@@ -89,28 +101,76 @@ export function DownloadsPage({ queue, history }: DownloadsPageProps): JSX.Eleme
               >
                 Open folder
               </button>
+              <button
+                type="button"
+                className="linkbtn"
+                onClick={() => void window.videocat.clearHistory()}
+              >
+                Clear history
+              </button>
             </div>
           </div>
-          {completedToday.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className={`row${entry.fileExists ? '' : ' row--missing'}`}
-              title={entry.fileExists ? entry.outputPath : `${entry.outputPath} — moved or deleted`}
-              // A missing file has nothing to reveal; the row stays for the record.
-              disabled={!entry.fileExists}
-              onClick={() => void window.videocat.revealFile(entry.outputPath)}
-            >
-              <span className="row__tick">
-                {entry.fileExists ? <CheckCircleIcon size={15} /> : <AlertCircleIcon size={15} />}
-              </span>
-              <span className="row__title">{entry.title}</span>
-              <span className="row__meta">
-                {entry.fileExists
-                  ? `${entry.qualityLabel} · ${formatBytes(entry.sizeBytes)}`
-                  : 'moved or deleted'}
-              </span>
-            </button>
+
+          {groups.map((group) => (
+            <div key={group.label} style={{ display: 'contents' }}>
+              <div className="day-label">{group.label}</div>
+              {group.items.map((entry) => (
+                <div
+                  key={entry.id}
+                  className={`history-item${entry.fileExists ? '' : ' history-item--missing'}`}
+                >
+                  <Thumb kind={entry.kind} url={entry.thumbnailUrl} />
+                  <div className="card__main">
+                    <div className="card__title" title={entry.title}>
+                      {entry.title}
+                    </div>
+                    <div className="card__meta">
+                      <span className="chip">{entry.qualityLabel}</span>
+                      <span className="chip">{entry.containerLabel}</span>
+                      {entry.fileExists ? null : (
+                        <span className="chip chip--missing" title={entry.outputPath}>
+                          <AlertCircleIcon size={12} />
+                          Missing from disk
+                        </span>
+                      )}
+                      <span>
+                        {formatBytes(entry.sizeBytes)}
+                        {entry.fileExists
+                          ? ` · finished ${formatTimeOfDay(entry.completedAt)}`
+                          : ' · the file was moved or deleted'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="card__actions" style={{ alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      className="btn btn--sm"
+                      disabled={!entry.fileExists}
+                      onClick={() => void window.videocat.openFile(entry.outputPath)}
+                    >
+                      Play
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--sm btn--ghost"
+                      disabled={!entry.fileExists}
+                      onClick={() => void window.videocat.revealFile(entry.outputPath)}
+                    >
+                      {navigator.platform.toLowerCase().includes('mac')
+                        ? 'Show in Finder'
+                        : 'Show in Explorer'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--sm btn--ghost"
+                      onClick={() => void window.videocat.removeHistoryEntry(entry.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ))}
         </>
       ) : null}
