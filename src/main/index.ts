@@ -264,8 +264,12 @@ async function confirmDestructive(
   const options = {
     type: 'warning' as const,
     buttons: [confirmLabel, 'Cancel'],
-    defaultId: 0,
-    // Esc and the window's close gesture both land here rather than confirming.
+    // Cancel is both the default and the escape: the confirming button is destructive, so
+    // it must not be the one that fires on Return, and someone dismissing the sheet
+    // without reading it keeps their download. (Electron's dialog API has no per-button
+    // style — macOS's own `hasDestructiveAction` is not exposed — so the red button a
+    // native app would paint is not available here; withholding the default is.)
+    defaultId: 1,
     cancelId: 1,
     noLink: true,
     message,
@@ -373,7 +377,9 @@ function registerIpc(): void {
     if (count === 0) return false
     const confirmed = await confirmDestructive(
       'Clear the list of finished downloads?',
-      `${count === 1 ? 'One download' : `All ${count} downloads`} stop being listed here. The files themselves stay on disk.`,
+      count === 1
+        ? 'The one download listed here stops being listed. The file itself stays on disk.'
+        : `All ${count} downloads stop being listed here. The files themselves stay on disk.`,
       'Clear history'
     )
     if (!confirmed) return false
