@@ -39,11 +39,11 @@ console.log('DISK:', await win.locator('.disk__text').textContent())
 console.log('ENGINE BANNER:', (await win.locator('.banner__text').allTextContents()).join(' | '))
 await shot('01-downloads')
 
-for (const page of ['Completed', 'Library', 'Settings']) {
+for (const page of ['Library', 'Settings']) {
   await win.locator('.nav__item', { hasText: page }).click()
   await sleep(400)
   console.log(`${page.toUpperCase()}:`, await win.locator('.titlebar__label').textContent())
-  await shot(`0${['Completed', 'Library', 'Settings'].indexOf(page) + 2}-${page.toLowerCase()}`)
+  await shot(`0${['Library', 'Settings'].indexOf(page) + 2}-${page.toLowerCase()}`)
 }
 
 if (testUrl) {
@@ -63,13 +63,13 @@ if (testUrl) {
   await shot('05a-card-preview')
   await win.locator('.card__download').click()
 
-  await win.locator('.picker').waitFor({ timeout: 30_000 })
+  await win.locator('.card .picker').waitFor({ timeout: 30_000 })
   console.log('CARD TITLE:', await win.locator('.card__title').first().textContent())
-  console.log('FORMATS:', (await win.locator('.option').allTextContents()).join(' | '))
+  console.log('FORMATS:', (await win.locator('.card .option').allTextContents()).join(' | '))
   await shot('05-format-picker')
 
-  await win.locator('.option', { hasText: testFormat }).first().click()
-  await win.locator('.btn--sm', { hasText: 'Start download' }).click()
+  await win.locator('.card .option', { hasText: testFormat }).first().click()
+  await win.locator('.card .btn--sm', { hasText: 'Start download' }).click()
 
   if (pauseTest) {
     await win.locator('.progress__percent').waitFor()
@@ -93,7 +93,9 @@ if (testUrl) {
 
   // Poll until the queue card disappears (completed) or reports an error. Compare against
   // the starting row count so leftover history from an earlier run is not read as success.
-  const rowsBefore = await win.locator('.row__title').count()
+  // Finished files are the history rows in the lower half of the Downloads screen.
+  const historyRow = win.locator('.history-item .card__title')
+  const rowsBefore = await historyRow.count()
   let outcome = 'timeout'
   for (let i = 0; i < 300; i += 1) {
     await sleep(1000)
@@ -107,8 +109,8 @@ if (testUrl) {
       outcome = `error: ${err[0]}`
       break
     }
-    if ((await win.locator('.row__title').count()) > rowsBefore) {
-      outcome = `completed: ${await win.locator('.row__title').first().textContent()}`
+    if ((await historyRow.count()) > rowsBefore) {
+      outcome = `completed: ${await historyRow.first().textContent()}`
       break
     }
   }

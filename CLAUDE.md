@@ -24,7 +24,7 @@ npm run typecheck              # tsc for main+preload and renderer separately �
 npm run build                  # typecheck, then bundle to out/
 npm run verify                 # all behavioural suites (real downloads, several minutes)
 npm run verify queue           # one suite: input | picker | codecs | queue | cancel | concurrency | clipboard
-node scripts/smoke.mjs shots   # screenshot all four screens
+node scripts/smoke.mjs shots   # screenshot all three screens
 npm run pack:mac               # .dmg  (pack:win, pack for both)
 ```
 
@@ -62,8 +62,8 @@ code or vice versa, and neither can reach the other's globals.
 - `queue.ts` — the live queue. Invariants worth preserving: progress is monotonic
   (`Math.max`, because a merged download reports 0→100% twice); partial-file paths are tracked
   by the *queue*, not the job, since a cancel can arrive after the process exited; a completed
-  item is **deleted from the queue** and becomes a `HistoryEntry`, so "completed today" in the UI
-  reads from history, not from the queue. `friendlyError()` is where raw yt-dlp errors become
+  item is **deleted from the queue** and becomes a `HistoryEntry`, so the "Completed" half of
+  the Downloads screen reads from history, not from the queue. `friendlyError()` is where raw yt-dlp errors become
   user-facing sentences.
 - `ytdlp.ts` — the only place that knows yt-dlp's CLI. `FORMAT_SORT` is passed by *both* `probe()`
   and `buildDownloadArgs()`; that is what keeps the size in the picker equal to the size on disk,

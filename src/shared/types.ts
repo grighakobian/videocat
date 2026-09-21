@@ -1,6 +1,6 @@
 /** Types shared across the main process, preload bridge, and renderer. */
 
-export type PageId = 'downloads' | 'completed' | 'library' | 'settings'
+export type PageId = 'downloads' | 'library' | 'settings'
 
 export type MediaKind = 'video' | 'audio'
 

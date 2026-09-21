@@ -4,7 +4,6 @@ import { ClipboardSuggestion } from './components/ClipboardSuggestion'
 import { Sidebar } from './components/Sidebar'
 import { UrlBar } from './components/UrlBar'
 import { useVideoCat } from './lib/useVideoCat'
-import { CompletedPage } from './pages/Completed'
 import { DownloadsPage } from './pages/Downloads'
 import { LibraryPage } from './pages/Library'
 import { SettingsPage } from './pages/Settings'
@@ -12,7 +11,6 @@ import { CloseIcon } from './components/Icons'
 
 const PAGE_TITLES: Record<PageId, string> = {
   downloads: 'Downloads',
-  completed: 'Completed',
   library: 'Library',
   settings: 'Settings'
 }
@@ -162,7 +160,6 @@ export default function App(): JSX.Element {
           {page === 'downloads' ? (
             <DownloadsPage queue={state.queue} history={state.history} />
           ) : null}
-          {page === 'completed' ? <CompletedPage history={state.history} /> : null}
           {page === 'library' ? <LibraryPage history={state.history} /> : null}
           {page === 'settings' && settings ? (
             <SettingsPage settings={settings} engine={engine} />

@@ -1,7 +1,7 @@
 import type { JSX } from 'react'
 import type { DiskSpace, PageId } from '@shared/types'
 import { formatBytes } from '../lib/format'
-import { CheckCircleIcon, DownloadIcon, GridIcon, SlidersIcon } from './Icons'
+import { DownloadIcon, GridIcon, SlidersIcon } from './Icons'
 import { Logo } from './Logo'
 
 interface SidebarProps {
@@ -13,7 +13,6 @@ interface SidebarProps {
 
 const NAV: { id: PageId; label: string; Icon: typeof DownloadIcon }[] = [
   { id: 'downloads', label: 'Downloads', Icon: DownloadIcon },
-  { id: 'completed', label: 'Completed', Icon: CheckCircleIcon },
   { id: 'library', label: 'Library', Icon: GridIcon },
   { id: 'settings', label: 'Settings', Icon: SlidersIcon }
 ]
