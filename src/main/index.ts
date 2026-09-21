@@ -250,6 +250,33 @@ function takeClipboardOffer(url: string): VideoMeta | undefined {
   return Date.now() - at <= CLIPBOARD_OFFER_TTL_MS ? meta : undefined
 }
 
+/**
+ * A native, window-modal confirmation (a sheet on macOS). Forgetting a download is not
+ * undoable and the list is the only record of it, so the OS asks rather than the page:
+ * a system dialog cannot be missed the way an in-page banner can, and it is the same
+ * prompt every other app on the machine uses to ask this.
+ */
+async function confirmDestructive(
+  message: string,
+  detail: string,
+  confirmLabel: string
+): Promise<boolean> {
+  const options = {
+    type: 'warning' as const,
+    buttons: [confirmLabel, 'Cancel'],
+    defaultId: 0,
+    // Esc and the window's close gesture both land here rather than confirming.
+    cancelId: 1,
+    noLink: true,
+    message,
+    detail
+  }
+  const { response } = mainWindow
+    ? await dialog.showMessageBox(mainWindow, options)
+    : await dialog.showMessageBox(options)
+  return response === 0
+}
+
 function applyClipboardSetting(settings: Settings): void {
   if (settings.watchClipboard) clipboardWatcher.start()
   else clipboardWatcher.stop()
@@ -325,14 +352,34 @@ function registerIpc(): void {
     return { ok: true as const }
   })
 
-  ipcMain.handle(IPC.removeHistoryEntry, (_event, id: string) => {
+  ipcMain.handle(IPC.removeHistoryEntry, async (_event, id: string) => {
+    const entry = store.getHistory().find((item) => item.id === id)
+    if (!entry) return false
+    // Removing forgets the download; it never touches the file. Say so, or the dialog
+    // reads like it is about to delete the video.
+    const confirmed = await confirmDestructive(
+      'Remove this download from the list?',
+      `“${entry.title}” stops being listed here. The file itself stays on disk.`,
+      'Remove'
+    )
+    if (!confirmed) return false
     store.removeHistoryEntry(id)
     publishHistory()
+    return true
   })
 
-  ipcMain.handle(IPC.clearHistory, () => {
+  ipcMain.handle(IPC.clearHistory, async () => {
+    const count = store.getHistory().length
+    if (count === 0) return false
+    const confirmed = await confirmDestructive(
+      'Clear the list of finished downloads?',
+      `${count === 1 ? 'One download' : `All ${count} downloads`} stop being listed here. The files themselves stay on disk.`,
+      'Clear history'
+    )
+    if (!confirmed) return false
     store.clearHistory()
     publishHistory()
+    return true
   })
 
   ipcMain.handle(IPC.readClipboardUrl, async () => {

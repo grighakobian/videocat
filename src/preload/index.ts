@@ -56,8 +56,10 @@ const api = {
   revealFile: (path: string): Promise<{ ok: true } | { ok: false; error: string }> =>
     ipcRenderer.invoke(IPC.revealFile, path),
 
-  removeHistoryEntry: (id: string): Promise<void> => ipcRenderer.invoke(IPC.removeHistoryEntry, id),
-  clearHistory: (): Promise<void> => ipcRenderer.invoke(IPC.clearHistory),
+  /** Both ask for confirmation in a native dialog; the boolean says whether it happened. */
+  removeHistoryEntry: (id: string): Promise<boolean> =>
+    ipcRenderer.invoke(IPC.removeHistoryEntry, id),
+  clearHistory: (): Promise<boolean> => ipcRenderer.invoke(IPC.clearHistory),
 
   readClipboardUrl: (): Promise<string | null> => ipcRenderer.invoke(IPC.readClipboardUrl),
   dismissClipboardHit: (url: string): Promise<void> =>
