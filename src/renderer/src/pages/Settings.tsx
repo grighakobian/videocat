@@ -1,10 +1,9 @@
 import { useEffect, useState, type JSX } from 'react'
-import type { EngineStatus, Settings } from '@shared/types'
+import type { Settings } from '@shared/types'
 import { Toggle } from '../components/Toggle'
 
 interface SettingsPageProps {
   settings: Settings
-  engine: EngineStatus
 }
 
 const ACCENTS = ['#E8501F', '#7B61C9', '#1F8A5B', '#1D6FE0']
@@ -16,19 +15,12 @@ function update(patch: Partial<Settings>): void {
   void window.videocat.updateSettings(patch)
 }
 
-export function SettingsPage({ settings, engine }: SettingsPageProps): JSX.Element {
+export function SettingsPage({ settings }: SettingsPageProps): JSX.Element {
   const [version, setVersion] = useState('—')
 
   useEffect(() => {
     void window.videocat.getVersion().then(setVersion)
   }, [])
-
-  const engineLabel =
-    engine.state === 'ready'
-      ? `yt-dlp ${engine.version ?? 'ready'}`
-      : engine.state === 'error'
-        ? 'unavailable'
-        : 'setting up…'
 
   return (
     <div className="page">
@@ -186,7 +178,7 @@ export function SettingsPage({ settings, engine }: SettingsPageProps): JSX.Eleme
         </div>
 
         <div className="footnote">
-          VideoCat {version} · Engine: {engineLabel} ·{' '}
+          VideoCat {version} ·{' '}
           <button
             type="button"
             className="linkbtn"
