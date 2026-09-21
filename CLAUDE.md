@@ -80,10 +80,12 @@ code or vice versa, and neither can reach the other's globals.
 - `clipboardWatcher.ts` + `resolveClipboardLink()` in `index.ts` — the watcher is a dumb
   poller that emits *candidate* URLs; `index.ts` probes one and only pushes
   `onClipboardHit` when yt-dlp resolves it to media, so a copied non-media link stays
-  silent. Two things to keep: the probe waits for `engine.state === 'ready'` (a link
-  copied before yt-dlp finished provisioning is resolved from the engine-ready callback,
-  not failed), and the resolved `VideoMeta` is handed to `queue.add()` so accepting the
-  banner opens the picker without probing the same URL twice.
+  silent. The whole `VideoMeta` rides along in the hit, which is what lets the suggestion
+  render the full download UI (`ClipboardSuggestion` + the shared `FormatPicker`) instead
+  of a one-line offer. Two things to keep: the probe waits for `engine.state === 'ready'`
+  (a link copied before yt-dlp finished provisioning is resolved from the engine-ready
+  callback, not failed), and the resolved `VideoMeta` is handed to `queue.add()` so
+  accepting the suggestion starts the chosen quality without probing the same URL twice.
 - `fileWatcher.ts` — `fs.watch` on the folders that hold finished files, filtered to the
   history entries' own names (yt-dlp's `.part` churn in the same folder is ignored). It
   never recurses; every path is known. The 30s housekeeping tick in `index.ts` re-stats

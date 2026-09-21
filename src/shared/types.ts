@@ -125,13 +125,14 @@ export interface EngineStatus {
 
 /**
  * A link found on the clipboard that yt-dlp has already resolved to real media. Only
- * resolved links are offered, so the banner can name what it found rather than asking
- * about any URL that happened to be copied.
+ * resolved links are offered, so the suggestion can show what it found rather than
+ * asking about any URL that happened to be copied. The whole probe result travels with
+ * it: the offer shows the same artwork, title and quality list a queued card shows, so
+ * accepting it is one click on a rung rather than a download that starts blind.
  */
 export interface ClipboardHit {
   url: string
-  title: string
-  durationSeconds: number | null
+  meta: VideoMeta
 }
 
 export interface AppSnapshot {

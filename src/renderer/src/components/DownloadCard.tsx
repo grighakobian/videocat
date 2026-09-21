@@ -1,6 +1,7 @@
-import { useEffect, useState, type JSX } from 'react'
+import { useState, type JSX } from 'react'
 import type { DownloadItem } from '@shared/types'
 import { formatBytes, formatDuration, formatEta, formatSpeed } from '../lib/format'
+import { FormatPicker } from './FormatPicker'
 import { CloseIcon, PauseIcon, PlayIcon, RetryIcon } from './Icons'
 import { Thumb } from './Thumb'
 
@@ -42,73 +43,6 @@ function statusLine(item: DownloadItem): string | null {
     default:
       return null
   }
-}
-
-/** The format picker shown while an item is waiting on a quality choice. */
-function FormatPicker({ item }: DownloadCardProps): JSX.Element {
-  const [selected, setSelected] = useState<string | null>(null)
-  const [subtitles, setSubtitles] = useState(item.withSubtitles)
-
-  // Default the highlight to the first (highest) option once formats arrive.
-  useEffect(() => {
-    if (!selected && item.formats.length > 0) setSelected(item.formats[0].id)
-  }, [item.formats, selected])
-
-  const choice = item.formats.find((format) => format.id === selected) ?? null
-
-  return (
-    <div className="picker">
-      <div className="section-label">Choose quality</div>
-      <div className="picker__options">
-        {item.formats.map((format) => (
-          <button
-            key={format.id}
-            type="button"
-            className={`option${selected === format.id ? ' option--selected' : ''}`}
-            onClick={() => setSelected(format.id)}
-          >
-            <div className="option__label">{format.label}</div>
-            <div className="option__detail">{format.detail}</div>
-          </button>
-        ))}
-        <label className="checkline">
-          <input
-            type="checkbox"
-            checked={subtitles}
-            disabled={choice?.kind === 'audio'}
-            onChange={(event) => setSubtitles(event.target.checked)}
-          />
-          Subtitles (.srt)
-        </label>
-      </div>
-      {choice && !choice.widelyCompatible ? (
-        <div className="picker__note">
-          {choice.label.split(' · ')[0]} is only published as {choice.codecLabel} at this
-          resolution. QuickTime cannot play it — use VLC or IINA, or pick a lower quality for
-          a file that plays anywhere.
-        </div>
-      ) : null}
-      <div className="picker__confirm">
-        <button
-          type="button"
-          className="btn btn--sm"
-          disabled={!choice}
-          onClick={() => {
-            if (choice) void window.videocat.chooseFormat(item.id, choice.id, subtitles)
-          }}
-        >
-          Start download
-        </button>
-        <button
-          type="button"
-          className="linkbtn linkbtn--muted"
-          onClick={() => void window.videocat.cancel(item.id)}
-        >
-          Remove
-        </button>
-      </div>
-    </div>
-  )
 }
 
 export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
@@ -231,7 +165,17 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
         </div>
       </div>
 
-      {showPicker ? <FormatPicker item={item} /> : null}
+      {showPicker ? (
+        <FormatPicker
+          formats={item.formats}
+          withSubtitles={item.withSubtitles}
+          dismissLabel="Remove"
+          onConfirm={(formatId, withSubtitles) =>
+            void window.videocat.chooseFormat(item.id, formatId, withSubtitles)
+          }
+          onDismiss={() => void window.videocat.cancel(item.id)}
+        />
+      ) : null}
     </div>
   )
 }

@@ -227,7 +227,9 @@ async function resolveClipboardLink(): Promise<void> {
     if (pendingClipboardUrl !== url) return // superseded by a newer copy
     pendingClipboardUrl = null
     clipboardOffer = { url, meta, at: Date.now() }
-    clipboardHit = { url, title: meta.title, durationSeconds: meta.durationSeconds }
+    // The whole probe result goes to the renderer: the offer shows the picker, so it
+    // needs the formats, not just a title.
+    clipboardHit = { url, meta }
     send(IPC.onClipboardHit, clipboardHit)
   } catch {
     // Not media, or unreachable. Staying quiet is the point of resolving first.

@@ -108,9 +108,9 @@ const helpers = (win) => ({
       )
     }
     await win.locator('.card__download').last().click()
-    await win.locator('.picker').last().waitFor({ timeout: 30_000 })
-    await win.locator('.picker').last().locator('.option', { hasText: format }).first().click()
-    await win.locator('.picker').last().locator('.btn--sm', { hasText: 'Start' }).click()
+    await win.locator('.card .picker').last().waitFor({ timeout: 30_000 })
+    await win.locator('.card .picker').last().locator('.option', { hasText: format }).first().click()
+    await win.locator('.card .picker').last().locator('.btn--sm', { hasText: 'Start' }).click()
     await sleep(500)
   },
   /** Throttles downloads so ordering and pause/resume are observable. */
@@ -175,12 +175,12 @@ const suites = {
     const preview = (await win.locator('.card__status').first().textContent()) ?? ''
     check('the preview line carries the duration', /\d+:\d\d/.test(preview), preview)
     check('no formats or sizes until they are asked for',
-      (await win.locator('.option').count()) === 0)
-    check('no picker until it is asked for', (await win.locator('.picker').count()) === 0)
+      (await win.locator('.card .option').count()) === 0)
+    check('no picker until it is asked for', (await win.locator('.card .picker').count()) === 0)
 
     await win.locator('.card__download').click()
-    await win.locator('.picker').waitFor({ timeout: 30_000 })
-    const options = await win.locator('.option').allTextContents()
+    await win.locator('.card .picker').waitFor({ timeout: 30_000 })
+    const options = await win.locator('.card .option').allTextContents()
     check('the picker lists rungs with sizes',
       options.length > 1 && /MB|GB/.test(options.join(' ')), options.join(' | '))
 
@@ -189,8 +189,8 @@ const suites = {
     check('nothing downloads before a quality is picked',
       (await win.locator('.progress__percent').count()) === 0)
 
-    await win.locator('.picker').locator('.option', { hasText: '1080p' }).first().click()
-    await win.locator('.picker').locator('.btn--sm', { hasText: 'Start' }).click()
+    await win.locator('.card .picker').locator('.option', { hasText: '1080p' }).first().click()
+    await win.locator('.card .picker').locator('.btn--sm', { hasText: 'Start' }).click()
     const started = await h.waitFor(
       async () => (await win.locator('.progress__percent').count()) > 0, 200)
     check('starts once a quality is chosen', started)
@@ -208,23 +208,23 @@ const suites = {
     await h.input.fill(VIDEO)
     await win.locator('.urlbar .btn', { hasText: 'Download' }).click()
     await win.locator('.card__download').click({ timeout: 180_000 })
-    await win.locator('.picker').waitFor({ timeout: 30_000 })
+    await win.locator('.card .picker').waitFor({ timeout: 30_000 })
 
     const optionText = async (label) =>
-      (await win.locator('.option', { hasText: label }).first().textContent()) ?? ''
+      (await win.locator('.card .option', { hasText: label }).first().textContent()) ?? ''
     check('1080p is H.264', /H\.264/.test(await optionText('1080p')), await optionText('1080p'))
     check('720p is H.264', /H\.264/.test(await optionText('720p')), await optionText('720p'))
     // YouTube has no H.264 above 1080p, so 4K is necessarily VP9/AV1.
     check('4K reports its codec', /VP9|AV1/.test(await optionText('4K')), await optionText('4K'))
 
-    await win.locator('.option', { hasText: '4K' }).click()
+    await win.locator('.card .option', { hasText: '4K' }).click()
     await sleep(300)
     check('4K warns that QuickTime cannot play it',
-      /QuickTime/.test((await win.locator('.picker__note').textContent().catch(() => '')) ?? ''))
+      /QuickTime/.test((await win.locator('.card .picker__note').textContent().catch(() => '')) ?? ''))
 
-    await win.locator('.option', { hasText: '1080p' }).click()
+    await win.locator('.card .option', { hasText: '1080p' }).click()
     await sleep(300)
-    check('1080p shows no warning', (await win.locator('.picker__note').count()) === 0)
+    check('1080p shows no warning', (await win.locator('.card .picker__note').count()) === 0)
 
     // Resolution must never be traded away for a compatible codec.
     check('4K is still offered at 4K', /4K/.test(await optionText('4K')))
@@ -323,9 +323,12 @@ const suites = {
     copy(VIDEO)
     check('detects a copied link',
       await h.waitFor(async () => (await h.clipboardBanner().count()) > 0, 60))
-    // The point of resolving first: the banner names the video rather than the URL.
-    const offer = (await h.clipboardBanner().locator('.banner__text').textContent()) ?? ''
+    // The point of resolving first: the offer shows the video — artwork, title and the
+    // same quality rungs a queued card offers — rather than asking about a bare URL.
+    const offer = (await h.clipboardBanner().textContent()) ?? ''
     check('names the resolved video', /Big Buck Bunny/i.test(offer), offer)
+    check('offers the quality picker in the suggestion',
+      (await h.clipboardBanner().locator('.picker .option').count()) > 0)
 
     await h.clipboardBanner().locator('.banner__close').click()
     await sleep(400)

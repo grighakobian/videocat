@@ -164,8 +164,9 @@ where a unit test would have been mocked into agreeing with itself.
   chosen, H.264 where it exists and a warning where it does not, Pause all / Resume all,
   pause keeping the
   `.part` file while cancel deletes it, the simultaneous-downloads limit (including
-  raising it mid-flight), and clipboard watching — a copied link resolved and named in
-  the banner, a copied non-media URL passed over in silence — plus the ⌘V shortcut. It
+  raising it mid-flight), and clipboard watching — a copied link resolved and offered
+  with its full picker, a copied non-media URL passed over in silence — plus the ⌘V
+  shortcut. It
   runs real downloads over the network, so a full pass takes several minutes and resets
   the settings/history store first. Back-to-back suites make a lot of requests to the same
   video and YouTube will occasionally throttle them; a suite that fails this way says
@@ -182,8 +183,11 @@ Whatever yt-dlp can extract — well over a thousand sites. The URL field does n
 the host, only that the input is an http(s) URL; anything yt-dlp cannot handle comes
 back as a normal download error. The clipboard watcher hands every copied http(s) link
 to yt-dlp for the same reason — the host alone cannot predict what it can extract — and
-only mentions the ones that resolve, so copying a docs link puts nothing on screen. The
-cost of that is a background probe per copied link while watching is on; the banner is
+only mentions the ones that resolve, so copying a docs link puts nothing on screen.
+Because the link is already probed by the time it is offered, the suggestion is the whole
+download UI — artwork, title, and the same quality rungs with sizes a queued card shows —
+so accepting it means clicking a quality, not queueing something and choosing after. The
+cost of that is a background probe per copied link while watching is on; the suggestion is
 dismissible, dismissed and unresolvable links are not offered again, and Settings can
 turn the whole thing off.
 
