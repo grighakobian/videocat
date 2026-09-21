@@ -177,16 +177,7 @@ export function SettingsPage({ settings }: SettingsPageProps): JSX.Element {
           </div>
         </div>
 
-        <div className="footnote">
-          VideoCat {version} ·{' '}
-          <button
-            type="button"
-            className="linkbtn"
-            onClick={() => void window.videocat.updateEngine()}
-          >
-            Update engine
-          </button>
-        </div>
+        <div className="footnote">VideoCat {version}</div>
       </div>
     </div>
   )
