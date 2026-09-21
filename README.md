@@ -10,7 +10,7 @@ exploration from `VideoCat Downloader v2.dc.html`.
 
 | | |
 |---|---|
-| **Downloads** | Global paste bar (⌘V / Ctrl+V from anywhere), a clipboard suggestion that shows the video it found with its own artwork, title and quality picker, live queue with per-item progress, speed and ETA, pause/resume/cancel, and cards that preview a link before its quality picker is opened — with the finished downloads below it, grouped by day, each with Play, Show in Finder/Explorer and Remove. A completed item leaves the queue and joins that list, so one screen carries a download from paste to file; entries whose file has since moved are dimmed. |
+| **Downloads** | Global paste bar (⌘V / Ctrl+V from anywhere), a clipboard suggestion that shows the video it found with its own artwork, title and quality picker, live queue with per-item progress and how much of the file has arrived, pause/resume/cancel, and cards that preview a link before its quality picker is opened — with the finished downloads below it, grouped by day, each with Play, Show in Finder/Explorer and Remove. A completed item leaves the queue and joins that list, so one screen carries a download from paste to file; entries whose file has since moved are dimmed. |
 | **Library** | Grid of everything still on disk, filterable by All / Video / Audio. Click to play, double-click to reveal. |
 | **Settings** | Save folder, simultaneous downloads, clipboard watching, subtitles, speed cap, notifications, and accent color. |
 

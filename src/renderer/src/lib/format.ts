@@ -18,14 +18,16 @@ export function formatDuration(seconds: number | null | undefined): string | nul
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(secs)}` : `${minutes}:${pad(secs)}`
 }
 
-/** Short, human ETA: "48s left", "2m left", "1h 4m left". */
-export function formatEta(seconds: number | null): string | null {
-  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return null
-  if (seconds < 60) return `${Math.round(seconds)}s left`
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m left`
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.round((seconds % 3600) / 60)
-  return `${hours}h ${minutes}m left`
+/**
+ * How far a download has got, in the terms the user picked it by: "412 MB / 1.3 GB".
+ * Both numbers are cumulative across a merged download's two streams, so this is the
+ * same fraction the bar is drawing. Without a known total — a live stream, or a server
+ * that sends no length — the downloaded size stands on its own.
+ */
+export function formatTransferred(downloaded: number | null, total: number | null): string | null {
+  if (downloaded === null || !Number.isFinite(downloaded)) return null
+  if (total === null || !Number.isFinite(total)) return formatBytes(downloaded)
+  return `${formatBytes(downloaded)} / ${formatBytes(total)}`
 }
 
 export function formatTimeOfDay(timestamp: number): string {

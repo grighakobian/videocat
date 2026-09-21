@@ -1,6 +1,6 @@
 import { useState, type JSX } from 'react'
 import type { DownloadItem } from '@shared/types'
-import { formatBytes, formatDuration, formatEta, formatSpeed } from '../lib/format'
+import { formatBytes, formatDuration, formatTransferred } from '../lib/format'
 import { FormatPicker } from './FormatPicker'
 import { CloseIcon, PauseIcon, PlayIcon, RetryIcon } from './Icons'
 import { Thumb } from './Thumb'
@@ -62,9 +62,9 @@ export function DownloadCard({ item }: DownloadCardProps): JSX.Element {
     item.status === 'downloading' || item.status === 'paused' || item.status === 'queued'
   const indeterminate = isRunning && item.totalBytes === null && item.progress === 0
 
-  const speed = formatSpeed(item.speedBytesPerSecond)
-  const eta = formatEta(item.etaSeconds)
-  const stats = item.stage ?? [speed, eta].filter(Boolean).join(' · ')
+  // Bytes, not rate: "412 MB / 1.3 GB" answers "how much of my file is here" and
+  // reads the same whether the line is moving or paused, which a speed and an ETA do not.
+  const stats = item.stage ?? formatTransferred(item.downloadedBytes, item.totalBytes) ?? ''
 
   return (
     <div className={resolving ? 'card card--resolving' : 'card'} aria-busy={resolving}>
