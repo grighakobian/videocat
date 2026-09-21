@@ -1,7 +1,7 @@
 # VideoCat
 
 A calm desktop video downloader for macOS and Windows. Paste a video link, pick a
-quality, get a file.
+quality, get a file. — [videocat.io](https://videocat.io)
 
 Built with Electron, React, and TypeScript, implementing the **V2 "Clean"** design
 exploration from `VideoCat Downloader v2.dc.html`.

@@ -1,4 +1,7 @@
-appId: com.videocat.app
+# Reverse-DNS of the domain we actually own. Changing this after a release would make
+# every OS treat the new build as a different app — installed side by side on Windows,
+# a separate identity on macOS — so it is set now, before the first one goes out.
+appId: io.videocat.app
 productName: VideoCat
 # Where the app looks for updates, and where `electron-builder --publish` sends builds.
 # electron-updater reads the latest-*.yml that a publish-configured build writes next to

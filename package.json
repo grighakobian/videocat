@@ -3,6 +3,7 @@
   "productName": "VideoCat",
   "version": "0.1.0",
   "description": "A calm desktop video downloader",
+  "homepage": "https://videocat.io",
   "main": "./out/main/index.js",
   "author": "VideoCat",
   "license": "MIT",
