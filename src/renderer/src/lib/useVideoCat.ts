@@ -5,7 +5,8 @@ import type {
   DownloadItem,
   EngineStatus,
   HistoryEntry,
-  Settings
+  Settings,
+  UpdateStatus
 } from '@shared/types'
 
 export interface Toast {
@@ -21,6 +22,7 @@ export interface VideoCatState {
   disk: DiskSpace | null
   engine: EngineStatus
   clipboardHit: ClipboardHit | null
+  update: UpdateStatus
   toast: Toast | null
   dismissClipboardHit(): void
   showToast(toast: Toast): void
@@ -32,6 +34,13 @@ const INITIAL_ENGINE: EngineStatus = {
   version: null,
   message: null,
   progress: null
+}
+
+const INITIAL_UPDATE: UpdateStatus = {
+  state: 'idle',
+  version: null,
+  progress: null,
+  message: null
 }
 
 /**
@@ -46,6 +55,7 @@ export function useVideoCat(): VideoCatState {
   const [disk, setDisk] = useState<DiskSpace | null>(null)
   const [engine, setEngine] = useState<EngineStatus>(INITIAL_ENGINE)
   const [clipboardHit, setClipboardHit] = useState<ClipboardHit | null>(null)
+  const [update, setUpdate] = useState<UpdateStatus>(INITIAL_UPDATE)
   const [toast, setToast] = useState<Toast | null>(null)
 
   useEffect(() => {
@@ -58,6 +68,7 @@ export function useVideoCat(): VideoCatState {
       setDisk(snapshot.disk)
       setEngine(snapshot.engine)
       setClipboardHit(snapshot.clipboardHit)
+      setUpdate(snapshot.update)
       setReady(true)
     })
 
@@ -68,6 +79,7 @@ export function useVideoCat(): VideoCatState {
       window.videocat.onDisk(setDisk),
       window.videocat.onEngine(setEngine),
       window.videocat.onClipboardHit(setClipboardHit),
+      window.videocat.onUpdate(setUpdate),
       window.videocat.onToast(setToast)
     ]
 
@@ -99,6 +111,7 @@ export function useVideoCat(): VideoCatState {
     disk,
     engine,
     clipboardHit,
+    update,
     toast,
     dismissClipboardHit,
     showToast: setToast,

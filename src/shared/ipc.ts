@@ -20,6 +20,8 @@ export const IPC = {
   readClipboardUrl: 'videocat:read-clipboard-url',
   dismissClipboardHit: 'videocat:dismiss-clipboard-hit',
   updateEngine: 'videocat:update-engine',
+  checkForUpdates: 'videocat:check-for-updates',
+  installUpdate: 'videocat:install-update',
   openExternal: 'videocat:open-external',
   getVersion: 'videocat:get-version',
   getPlatform: 'videocat:get-platform',
@@ -30,5 +32,6 @@ export const IPC = {
   onDisk: 'videocat:disk',
   onEngine: 'videocat:engine',
   onClipboardHit: 'videocat:clipboard-hit',
+  onUpdate: 'videocat:update-status',
   onToast: 'videocat:toast'
 } as const

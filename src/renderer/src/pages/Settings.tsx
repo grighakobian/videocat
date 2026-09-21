@@ -1,9 +1,10 @@
 import { useEffect, useState, type JSX } from 'react'
-import type { Settings } from '@shared/types'
+import type { Settings, UpdateStatus } from '@shared/types'
 import { Toggle } from '../components/Toggle'
 
 interface SettingsPageProps {
   settings: Settings
+  updateStatus: UpdateStatus
 }
 
 const ACCENTS = ['#E8501F', '#7B61C9', '#1F8A5B', '#1D6FE0']
@@ -15,7 +16,28 @@ function update(patch: Partial<Settings>): void {
   void window.videocat.updateSettings(patch)
 }
 
-export function SettingsPage({ settings }: SettingsPageProps): JSX.Element {
+/** What the update row says about itself, given where the check has got to. */
+function updateHint(status: UpdateStatus, version: string): string {
+  switch (status.state) {
+    case 'checking':
+      return 'Looking for a newer version…'
+    case 'downloading':
+      return status.progress !== null
+        ? `Downloading ${status.version ?? 'the update'} — ${Math.round(status.progress * 100)}%`
+        : `Downloading ${status.version ?? 'the update'}…`
+    case 'ready':
+      return `Version ${status.version} is ready — restart to finish`
+    case 'up-to-date':
+      return `VideoCat ${version} is the latest version`
+    case 'unsupported':
+    case 'error':
+      return status.message ?? 'Could not check for updates.'
+    default:
+      return 'Look for a newer version of VideoCat'
+  }
+}
+
+export function SettingsPage({ settings, updateStatus }: SettingsPageProps): JSX.Element {
   const [version, setVersion] = useState('—')
 
   useEffect(() => {
@@ -151,6 +173,36 @@ export function SettingsPage({ settings }: SettingsPageProps): JSX.Element {
               checked={settings.notifyOnComplete}
               onChange={(value) => update({ notifyOnComplete: value })}
             />
+          </div>
+        </div>
+
+        <div className="settings__group">
+          <div className="section-label">Updates</div>
+          <div className="setting">
+            <div className="setting__text">
+              <div className="setting__name">Check for updates</div>
+              <div className="setting__hint">{updateHint(updateStatus, version)}</div>
+            </div>
+            {updateStatus.state === 'ready' ? (
+              <button
+                type="button"
+                className="btn btn--sm"
+                onClick={() => void window.videocat.installUpdate()}
+              >
+                Restart now
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--sm btn--ghost"
+                disabled={
+                  updateStatus.state === 'checking' || updateStatus.state === 'downloading'
+                }
+                onClick={() => void window.videocat.checkForUpdates()}
+              >
+                {updateStatus.state === 'checking' ? 'Checking…' : 'Check'}
+              </button>
+            )}
           </div>
         </div>
 

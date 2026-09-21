@@ -17,6 +17,7 @@ import type {
   DiskSpace,
   EngineStatus,
   Settings,
+  UpdateStatus,
   VideoMeta
 } from '@shared/types'
 import { BinaryManager } from './binaries'
@@ -25,6 +26,7 @@ import { readDiskSpace } from './disk'
 import { HistoryFileWatcher } from './fileWatcher'
 import { DownloadQueue } from './queue'
 import { Store } from './store'
+import { AppUpdater } from './updater'
 import { YtDlp } from './ytdlp'
 
 /**
@@ -52,6 +54,7 @@ let binaries: BinaryManager
 let ytdlp: YtDlp
 let queue: DownloadQueue
 let clipboardWatcher: ClipboardWatcher
+let updater: AppUpdater
 let fileWatcher: HistoryFileWatcher
 let disk: DiskSpace | null = null
 let housekeepingTimer: NodeJS.Timeout | null = null
@@ -165,7 +168,8 @@ function buildSnapshot(): AppSnapshot {
     history: store.refreshFileExistence().history,
     disk,
     engine: binaries.getStatus(),
-    clipboardHit
+    clipboardHit,
+    update: updater.getStatus()
   }
 }
 
@@ -400,6 +404,8 @@ function registerIpc(): void {
   })
 
   ipcMain.handle(IPC.updateEngine, () => binaries.updateEngine())
+  ipcMain.handle(IPC.checkForUpdates, () => updater.check())
+  ipcMain.handle(IPC.installUpdate, () => updater.install())
 
   ipcMain.handle(IPC.openExternal, (_event, url: string) => {
     if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
@@ -437,6 +443,7 @@ function bootstrap(): void {
     onFailed: (item) => send(IPC.onToast, { kind: 'error', message: item.error ?? 'Download failed.' })
   })
 
+  updater = new AppUpdater((status: UpdateStatus) => send(IPC.onUpdate, status))
   clipboardWatcher = new ClipboardWatcher(considerClipboardLink)
   fileWatcher = new HistoryFileWatcher(refreshHistoryFiles)
 }

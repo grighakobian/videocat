@@ -1,5 +1,12 @@
 appId: com.videocat.app
 productName: VideoCat
+# Where the app looks for updates, and where `electron-builder --publish` sends builds.
+# electron-updater reads the latest-*.yml that a publish-configured build writes next to
+# the installers, so this block is what makes "Check for updates" able to find anything.
+publish:
+  provider: github
+  owner: grighakobian
+  repo: videocat
 directories:
   buildResources: build
   output: release

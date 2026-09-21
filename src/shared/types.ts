@@ -124,6 +124,19 @@ export interface EngineStatus {
 }
 
 /**
+ * Where an app update has got to. `unsupported` is a build that cannot update itself —
+ * one running from source — and is a statement, not a failure.
+ */
+export interface UpdateStatus {
+  state: 'idle' | 'checking' | 'up-to-date' | 'downloading' | 'ready' | 'unsupported' | 'error'
+  /** The version the state is about: the new one once found, this one otherwise. */
+  version: string | null
+  /** 0..1 while downloading. */
+  progress: number | null
+  message: string | null
+}
+
+/**
  * A link found on the clipboard that yt-dlp has already resolved to real media. Only
  * resolved links are offered, so the suggestion can show what it found rather than
  * asking about any URL that happened to be copied. The whole probe result travels with
@@ -143,4 +156,5 @@ export interface AppSnapshot {
   engine: EngineStatus
   /** A clipboard suggestion still standing, so a renderer that mounts late still sees it. */
   clipboardHit: ClipboardHit | null
+  update: UpdateStatus
 }

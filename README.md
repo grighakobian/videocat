@@ -57,6 +57,21 @@ electron-builder derives the `.ico`) and `build/icon.icns`. `electron-builder.ym
 points each platform at its own file. A bare `npm run icon` regenerates from the kept
 artwork, or draws the cat mark from `Logo.tsx` when there is none.
 
+### Updates
+
+`electron-builder.yml` carries a `publish` block pointing at this repo's GitHub releases,
+which is both where `npm run release:mac` / `release:win` upload and where the app looks:
+a publish-configured build writes `latest-mac.yml` / `latest.yml` next to the installers
+and embeds `app-update.yml` in the bundle, and `Settings → Check for updates` reads it.
+`pack:*` passes `--publish never`, so local builds never touch the release page.
+
+Checking is manual — no background poll — and a found update downloads immediately, then
+waits for the user to restart. **macOS cannot install updates into an unsigned build**:
+Squirrel.Mac refuses to swap an app whose signature it cannot verify, and the row says so
+rather than failing silently. Windows NSIS updates install unsigned, with a SmartScreen
+warning. yt-dlp is unaffected either way — it lives in `userData/bin`, outside the bundle,
+so it survives an update and keeps its own once-a-day check.
+
 Neither target is signed or notarized — add credentials before distributing. On macOS,
 electron-builder auto-discovers any signing identity in your keychain and will **hang**
 on `codesign` if the keychain can't be unlocked (CI, or a non-interactive shell). For a
@@ -81,6 +96,7 @@ src/
     ytdlp.ts            metadata probes, format list, download jobs
     queue.ts            ordering, concurrency, per-item lifecycle
     store.ts            settings + history, atomically persisted JSON
+    updater.ts          app updates via electron-updater (Settings → Check for updates)
     clipboardWatcher.ts polls for copied links (index.ts resolves one before offering it)
     fileWatcher.ts      watches finished files so history shows moved/deleted ones
     disk.ts             free/total space for the sidebar

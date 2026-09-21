@@ -161,7 +161,9 @@ export default function App(): JSX.Element {
             <DownloadsPage queue={state.queue} history={state.history} />
           ) : null}
           {page === 'library' ? <LibraryPage history={state.history} /> : null}
-          {page === 'settings' && settings ? <SettingsPage settings={settings} /> : null}
+          {page === 'settings' && settings ? (
+            <SettingsPage settings={settings} updateStatus={state.update} />
+          ) : null}
         </div>
       </div>
 

@@ -7,7 +7,8 @@ import type {
   DownloadItem,
   EngineStatus,
   HistoryEntry,
-  Settings
+  Settings,
+  UpdateStatus
 } from '@shared/types'
 
 export interface Toast {
@@ -65,6 +66,9 @@ const api = {
   dismissClipboardHit: (url: string): Promise<void> =>
     ipcRenderer.invoke(IPC.dismissClipboardHit, url),
   updateEngine: (): Promise<EngineStatus> => ipcRenderer.invoke(IPC.updateEngine),
+  checkForUpdates: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC.checkForUpdates),
+  /** Quits and relaunches into the downloaded update; nothing happens until one is ready. */
+  installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.installUpdate),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url),
 
   onQueue: (handler: (queue: DownloadItem[]) => void): Unsubscribe =>
@@ -78,6 +82,8 @@ const api = {
     subscribe(IPC.onEngine, handler),
   onClipboardHit: (handler: (hit: ClipboardHit) => void): Unsubscribe =>
     subscribe(IPC.onClipboardHit, handler),
+  onUpdate: (handler: (status: UpdateStatus) => void): Unsubscribe =>
+    subscribe(IPC.onUpdate, handler),
   onToast: (handler: (toast: Toast) => void): Unsubscribe => subscribe(IPC.onToast, handler)
 }
 

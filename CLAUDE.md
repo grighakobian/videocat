@@ -25,7 +25,8 @@ npm run build                  # typecheck, then bundle to out/
 npm run verify                 # all behavioural suites (real downloads, several minutes)
 npm run verify queue           # one suite: input | picker | codecs | queue | cancel | concurrency | clipboard
 node scripts/smoke.mjs shots   # screenshot all three screens
-npm run pack:mac               # .dmg  (pack:win, pack for both)
+npm run pack:mac               # .dmg  (pack:win, pack for both) — never publishes
+npm run release:mac            # same, but uploads to the GitHub release (needs GH_TOKEN)
 ```
 
 There is no linter, formatter, or unit-test runner. `npm run typecheck` and the Playwright
@@ -92,6 +93,14 @@ code or vice versa, and neither can reach the other's globals.
   history and re-syncs the watcher as a fallback, so a `fileExists` flip that the watcher
   misses is at most 30s late. `refreshFileExistence()` returns `changed` so nothing is
   pushed when nothing moved.
+- `updater.ts` — app updates over `electron-updater`, against the GitHub `publish` feed in
+  `electron-builder.yml`. Checking only ever happens because the user asked; a found update
+  downloads at once and then waits for a restart. Two things to keep: `electron-updater` is
+  imported **statically** (a dynamic `import()` of this CJS module in the bundled main hands
+  back a namespace whose `autoUpdater` is `undefined`, and the failure only shows in a
+  packaged build), and an unpackaged app short-circuits to `unsupported` rather than
+  surfacing "dev-app-update.yml not found". yt-dlp is not part of this: it lives in
+  `userData/bin`, survives an app update, and keeps its own daily check.
 - `store.ts` — settings + history as one atomically-written JSON file in `userData`. Loading
   merges over `defaultSettings()`, so a new setting only needs adding in three places:
   `Settings` in `shared/types.ts`, `defaultSettings()`, and the Settings page.
