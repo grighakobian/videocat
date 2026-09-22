@@ -486,7 +486,12 @@ function applyAboutPanel(): void {
   app.setAboutPanelOptions({
     applicationName: app.getName(),
     applicationVersion: app.getVersion(),
-    version: app.getVersion(),
+    // macOS renders "Version {applicationVersion} ({version})", where `version` is meant
+    // to be a build number distinct from the marketing one. There is no separate build
+    // number here, so passing the same string twice gave "Version 0.1.0 (0.1.0)"; empty
+    // drops the parenthetical. It cannot be left out — then AppKit falls back to the
+    // running bundle's CFBundleVersion, which in development is Electron's own.
+    version: '',
     copyright: `© ${new Date().getFullYear()} VideoCat`
   })
 }
