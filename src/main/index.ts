@@ -73,16 +73,16 @@ function send(channel: string, payload: unknown): void {
 }
 
 /**
- * Keeps the two menus macOS expects — the application menu and Edit — and drops the
- * rest: File, View and Window carry nothing this app can do. Everywhere else the menu
- * bar goes entirely.
+ * The standard macOS menu bar: the application menu, then File, Edit, View, Window and
+ * Help, each from the role that carries the system's own items and shortcuts. Only two
+ * things here are ours — Settings in the application menu, and what Help points at.
  *
- * Edit has to exist at all because on macOS a shortcut only fires if some menu item
- * declares it: remove Edit and ⌘C/⌘V/⌘X/⌘A go with it, and pasting a link into the URL
- * bar is the whole app. These items were folded into the application menu to keep the
- * bar to a single title, which kept the shortcuts but left Cut and Paste in the one
- * menu nobody looks for them in. `role: 'editMenu'` is the arrangement macOS defines,
- * and it brings Paste and Match Style, Speech and Emoji along with it.
+ * Every one of these roles matters beyond the menu it draws: on macOS an accelerator
+ * only fires if some menu item declares it, so Edit is what gives the app ⌘C/⌘V/⌘X/⌘A,
+ * and Window is what gives it ⌘M and ⌘W.
+ *
+ * Elsewhere the menu bar stays off: those platforms draw the titlebar in the renderer,
+ * and their accelerators do not depend on a menu existing.
  */
 /**
  * The Settings menu item. On macOS the app outlives its window, so the item has to be
@@ -125,7 +125,23 @@ function applyMenu(): void {
           { role: 'quit' }
         ]
       },
-      { role: 'editMenu' }
+      { role: 'fileMenu' },
+      { role: 'editMenu' },
+      { role: 'viewMenu' },
+      { role: 'windowMenu' },
+      {
+        role: 'help',
+        submenu: [
+          {
+            label: 'VideoCat Support',
+            click: () => void shell.openExternal('https://videocat.io/support.html')
+          },
+          {
+            label: 'videocat.io',
+            click: () => void shell.openExternal('https://videocat.io')
+          }
+        ]
+      }
     ])
   )
 }
