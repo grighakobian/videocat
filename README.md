@@ -21,12 +21,16 @@ npm install
 npm run dev
 ```
 
-> **Why the macOS menu bar would otherwise say "Electron".** That bold title comes from
-> the *running bundle's* `Info.plist`, and in development the running bundle is
-> `node_modules/electron/dist/Electron.app`. Nothing in Electron's API changes it —
-> neither `app.setName()` nor the application menu's own label, which AppKit ignores for
-> this. `scripts/dev-app-name.mjs` patches that dev bundle's `CFBundleName` to match
-> `productName`, and runs from `postinstall` so a reinstall re-applies it. Packaged
+> **Why the macOS menu bar and About panel would otherwise say "Electron".** The bold
+> menu title, and the icon About and the Dock show, come from the *running bundle's*
+> `Info.plist` — in development, `node_modules/electron/dist/Electron.app`. Nothing in
+> Electron's API changes the title (neither `app.setName()` nor the menu's own label, which
+> AppKit ignores for this), and `setAboutPanelOptions` cannot reach the icon on macOS.
+> `scripts/dev-app-name.mjs` patches that dev bundle's `CFBundleName` and `CFBundleIconFile`
+> and copies `build/icon.icns` in; it runs from `postinstall` so a reinstall re-applies it.
+> The About panel's *text* is set at runtime by `applyAboutPanel()` in `main/index.ts`, so
+> the name, version and copyright are right in packaged builds too. macOS caches Dock icons,
+> so the first run after this lands may still show the old one until `killall Dock`. Packaged
 > builds never needed it: electron-builder writes `CFBundleName` from `productName`.
 
 In VS Code, press **F5** — `.vscode/launch.json` has configs for both platforms:

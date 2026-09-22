@@ -475,10 +475,27 @@ function bootstrap(): void {
   fileWatcher = new HistoryFileWatcher(refreshHistoryFiles)
 }
 
+/**
+ * The About panel takes its name, version and icon from the *running bundle* — which in
+ * development is Electron's own, so it reads "Electron 44.2.0" over Electron's icon.
+ * These options override the text at runtime on every platform. The icon cannot be set
+ * this way on macOS (it is NSApplicationIcon, read from the bundle), which is why
+ * scripts/dev-app-name.mjs patches the dev bundle's icon too.
+ */
+function applyAboutPanel(): void {
+  app.setAboutPanelOptions({
+    applicationName: app.getName(),
+    applicationVersion: app.getVersion(),
+    version: app.getVersion(),
+    copyright: `© ${new Date().getFullYear()} VideoCat`
+  })
+}
+
 app.whenReady().then(async () => {
   store = new Store()
   bootstrap()
   registerIpc()
+  applyAboutPanel()
   applyMenu()
   createWindow()
 
