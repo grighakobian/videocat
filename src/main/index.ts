@@ -84,6 +84,21 @@ function send(channel: string, payload: unknown): void {
  * menu nobody looks for them in. `role: 'editMenu'` is the arrangement macOS defines,
  * and it brings Paste and Match Style, Speech and Emoji along with it.
  */
+/**
+ * The Settings menu item. On macOS the app outlives its window, so the item has to be
+ * able to put one back before it can ask the renderer to show a page.
+ */
+function openSettings(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow()
+    mainWindow?.webContents.once('did-finish-load', () => send(IPC.onNavigate, 'settings'))
+    return
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  send(IPC.onNavigate, 'settings')
+}
+
 function applyMenu(): void {
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null)
@@ -96,6 +111,10 @@ function applyMenu(): void {
         label: app.name,
         submenu: [
           { role: 'about' },
+          { type: 'separator' },
+          // Where macOS keeps it, under the name macOS 13 gave it, on the shortcut every
+          // Mac app answers to. There is no Electron role for this one.
+          { label: 'Settings…', accelerator: 'CmdOrCtrl+,', click: () => openSettings() },
           { type: 'separator' },
           { role: 'services' },
           { type: 'separator' },

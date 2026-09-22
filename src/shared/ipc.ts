@@ -32,6 +32,7 @@ export const IPC = {
   onDisk: 'videocat:disk',
   onEngine: 'videocat:engine',
   onClipboardHit: 'videocat:clipboard-hit',
+  onNavigate: 'videocat:navigate',
   onUpdate: 'videocat:update-status',
   onToast: 'videocat:toast'
 } as const

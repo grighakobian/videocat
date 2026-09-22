@@ -83,6 +83,10 @@ export default function App(): JSX.Element {
     [state.clipboardHit, state.dismissClipboardHit, showToast]
   )
 
+  // Settings in the app menu. This one is a command rather than mirrored state, so it
+  // subscribes here, next to the `page` it sets, instead of in useVideoCat.
+  useEffect(() => window.videocat.onNavigate(setPage), [])
+
   // ⌘V / Ctrl+V anywhere outside a text field pastes a link straight into the bar.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {

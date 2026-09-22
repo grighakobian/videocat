@@ -7,6 +7,7 @@ import type {
   DownloadItem,
   EngineStatus,
   HistoryEntry,
+  PageId,
   Settings,
   UpdateStatus
 } from '@shared/types'
@@ -84,6 +85,9 @@ const api = {
     subscribe(IPC.onClipboardHit, handler),
   onUpdate: (handler: (status: UpdateStatus) => void): Unsubscribe =>
     subscribe(IPC.onUpdate, handler),
+  /** The menu asking the window to show a page — a command, not mirrored state. */
+  onNavigate: (handler: (page: PageId) => void): Unsubscribe =>
+    subscribe(IPC.onNavigate, handler),
   onToast: (handler: (toast: Toast) => void): Unsubscribe => subscribe(IPC.onToast, handler)
 }
 

@@ -52,6 +52,9 @@ Adding anything that crosses the boundary touches four files, in this order:
    `VideoCatApi` is derived from it and `src/preload/index.d.ts` declares it on `window`.
 4. `src/renderer/src/lib/useVideoCat.ts` — for pushes, subscribe there. It is the renderer's
    single source of truth; pages read from it and call `window.videocat.*` directly for actions.
+   The exception is a push that is a *command* rather than state the main process owns —
+   `onNavigate`, which the Settings menu item sends — which subscribes wherever that piece of
+   view state lives (`page` in `App.tsx`).
 
 Types shared by both sides live in `src/shared/types.ts`. Path aliases: `@shared/*` everywhere,
 `@/*` (renderer src) in the renderer only. `tsconfig.node.json` (main+preload+shared) and
