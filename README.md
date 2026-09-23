@@ -58,7 +58,7 @@ These bundle the ffmpeg that `npm install` fetched for *this* machine, so a loca
 only works on the platform and arch it was made on. For releases, push a tag matching
 `package.json`'s version (`git tag v0.1.0 && git push origin v0.1.0`):
 `.github/workflows/release.yml` builds the `.exe` on Windows and each `.dmg` on its own
-Mac arch, and uploads them to a draft GitHub release to review and publish.
+Mac arch, and publishes a GitHub release with them once every build has passed.
 
 `npm run icon path/to/artwork.png` takes one square 1024px PNG as the whole tile, clips
 it to macOS's rounded corners, keeps a copy as `build/icon-artwork.png`, and writes

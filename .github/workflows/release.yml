@@ -8,8 +8,10 @@
 # the `arch` list in electron-builder.yml), while Windows builds both — its arm64 installer
 # carries the x64 ffmpeg, which Windows on ARM runs emulated.
 #
-# - Push a tag `v<version>` → builds and uploads to a draft release for that version; review
-#   it and press Publish, which is also when "Check for updates" starts seeing it.
+# - Push a tag `v<version>` → builds and uploads to a draft release for that version, then
+#   publishes it once every build has succeeded. A failed build leaves the draft unpublished,
+#   so users never see a release missing an installer. Publishing is also when "Check for
+#   updates" starts seeing it.
 # - Run it by hand from the Actions tab → builds only; installers are workflow artifacts.
 name: Release
 
@@ -97,3 +99,15 @@ jobs:
             release/*.exe
             release/*.dmg
           if-no-files-found: error
+
+  # Only after all three builds: electron-builder uploads into a draft, and a published
+  # release with one installer still missing would be offered to users as an update.
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest
