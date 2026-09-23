@@ -1,0 +1,99 @@
+# Builds the installers — Windows .exe, macOS .dmg for Apple silicon and Intel — and attaches
+# them to the GitHub release for the pushed tag.
+#
+# Every installer is built on its own platform and arch because of ffmpeg: ffmpeg-static
+# downloads the binary for whatever machine runs `npm install`, and electron-builder bundles
+# whatever is in node_modules. Cross-packing builds cleanly and then fails every merged
+# download on the user's machine. So the Macs build one arch each (a CLI target overrides
+# the `arch` list in electron-builder.yml), while Windows builds both — its arm64 installer
+# carries the x64 ffmpeg, which Windows on ARM runs emulated.
+#
+# - Push a tag `v<version>` → builds and uploads to a draft release for that version; review
+#   it and press Publish, which is also when "Check for updates" starts seeing it.
+# - Run it by hand from the Actions tab → builds only; installers are workflow artifacts.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write # creating the release and uploading to it
+
+jobs:
+  # The three builds publish in parallel; if none of them found a release, each would
+  # create its own draft. Creating it once up front gives them one to share.
+  prepare:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # electron-builder publishes to the release named after package.json's version, not
+      # after the tag, so a mismatch would silently upload to the wrong release.
+      - name: Check tag matches package.json version
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json $version"
+            exit 1
+          fi
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
+            gh release create "$GITHUB_REF_NAME" --draft --title "${GITHUB_REF_NAME#v}" --notes ""
+
+  build:
+    needs: prepare
+    # A hand-run has no tag, so `prepare` is skipped; build anyway, just without publishing.
+    if: ${{ !failure() && !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            args: --win
+          - name: mac-arm64
+            os: macos-latest
+            args: --mac dmg --arm64
+          - name: mac-x64
+            os: macos-15-intel
+            args: --mac dmg --x64
+    runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Builds are unsigned; stop electron-builder looking for a keychain identity.
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Package
+        shell: bash
+        run: |
+          publish=never
+          [[ "$GITHUB_REF" == refs/tags/* ]] && publish=always
+          npx electron-builder ${{ matrix.args }} --config electron-builder.yml --publish "$publish"
+
+      # Just the installers, for trying a hand-run build. The update manifests
+      # (latest*.yml) and blockmaps only matter on the release, where --publish puts them.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VideoCat-${{ matrix.name }}
+          path: |
+            release/*.exe
+            release/*.dmg
+          if-no-files-found: error

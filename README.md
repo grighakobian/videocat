@@ -54,6 +54,12 @@ npm run pack:win   # NSIS installer (x64 + arm64)
 npm run pack       # both
 ```
 
+These bundle the ffmpeg that `npm install` fetched for *this* machine, so a local build
+only works on the platform and arch it was made on. For releases, push a tag matching
+`package.json`'s version (`git tag v0.1.0 && git push origin v0.1.0`):
+`.github/workflows/release.yml` builds the `.exe` on Windows and each `.dmg` on its own
+Mac arch, and uploads them to a draft GitHub release to review and publish.
+
 `npm run icon path/to/artwork.png` takes one square 1024px PNG as the whole tile, clips
 it to macOS's rounded corners, keeps a copy as `build/icon-artwork.png`, and writes
 `build/icon.png` (macOS grid, transparent margin), `build/icon-win.png` (full bleed;
